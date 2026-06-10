@@ -1,7 +1,7 @@
 [
   {
-    "id": "a3a5ed4dd496",
-    "timestamp": "2026-06-10T22:06:33.811685",
+    "id": "6578be069caf",
+    "timestamp": "2026-06-10T22:32:02.516094",
     "params": {
       "species": null,
       "gender": null,
@@ -21,82 +21,82 @@
       "avoid_similar": true
     },
     "pet_ids": [
-      "0c3867ff",
-      "80c39730",
-      "e5639311",
-      "4f75a737",
-      "ab1c7bed",
-      "63aa02ff",
-      "4945dcdd",
-      "81229082",
-      "d57f0237",
-      "f2e96519"
+      "71bdbf85",
+      "d902c74e",
+      "f6bc11f3",
+      "57dff927",
+      "b8069afc",
+      "21f8a41f",
+      "016369aa",
+      "af7765cd",
+      "4d87a2a0",
+      "bf95b107"
     ],
     "generated_names": {
-      "0c3867ff": [
+      "71bdbf85": [
         "奶茶",
         "Bella",
         "棉花糖",
         "Angel",
         "Lucy"
       ],
-      "80c39730": [
+      "d902c74e": [
         "小虎",
         "Max",
         "可乐",
         "Milo",
         "Charlie"
       ],
-      "e5639311": [
+      "f6bc11f3": [
         "Luna",
         "糖糖",
         "如意",
         "欢欢",
         "妞妞"
       ],
-      "4f75a737": [
+      "57dff927": [
         "旺财",
         "Buddy",
         "大白",
         "来福",
         "Shadow"
       ],
-      "ab1c7bed": [
+      "b8069afc": [
         "Daisy",
         "Princess",
         "云朵",
         "Stella",
         "甜甜"
       ],
-      "63aa02ff": [
+      "21f8a41f": [
         "Rocky",
         "闪电",
         "悟空",
         "钢铁侠",
         "龙飞"
       ],
-      "4945dcdd": [
+      "016369aa": [
         "宝宝",
         "团子",
         "雪球",
         "毛毛",
         "布丁"
       ],
-      "81229082": [
+      "af7765cd": [
         "豆豆",
         "Fluffy",
         "汤圆",
         "福宝",
         "Snowball"
       ],
-      "d57f0237": [
+      "4d87a2a0": [
         "黑武士",
         "山水",
         "招财",
         "吉祥",
         "平安"
       ],
-      "f2e96519": [
+      "bf95b107": [
         "Bubbles",
         "哪吒",
         "Coco",
@@ -107,8 +107,8 @@
     "selected_names": {}
   },
   {
-    "id": "1d83dbcbb511",
-    "timestamp": "2026-06-10T22:10:10.862677",
+    "id": "43b05c92b3b4",
+    "timestamp": "2026-06-10T22:33:49.067752",
     "params": {
       "species": null,
       "gender": null,
@@ -120,75 +120,95 @@
       "batch": null,
       "min_length": null,
       "max_length": null,
-      "language": "en",
-      "style": "western",
+      "language": null,
+      "style": null,
       "forbidden_words": [],
-      "candidates_per_pet": 3,
+      "candidates_per_pet": 5,
       "exclude_used": true,
       "avoid_similar": true
     },
     "pet_ids": [
-      "c45716ee",
-      "d9982ed2",
-      "899778e7",
-      "9abbd697",
-      "7f13753c",
-      "5aa87d2e",
-      "8484f476",
-      "5879ea85",
-      "dca18c0a",
-      "e4c4b8f7"
+      "cec4413c",
+      "6c875624",
+      "865faf7e",
+      "0c422788",
+      "4646ed87",
+      "a01ddeca",
+      "331f02cb",
+      "e021b9ae",
+      "192428e1",
+      "f534dfdd"
     ],
     "generated_names": {
-      "c45716ee": [
+      "cec4413c": [
         "Bella",
+        "棉花糖",
         "Angel",
-        "Lucy"
+        "Lucy",
+        "Luna"
       ],
-      "d9982ed2": [
+      "6c875624": [
         "Max",
+        "可乐",
         "Milo",
-        "Charlie"
+        "Charlie",
+        "Buddy"
       ],
-      "899778e7": [
-        "Princess",
-        "Sunny",
-        "Coco"
+      "865faf7e": [
+        "糖糖",
+        "如意",
+        "欢欢",
+        "妞妞",
+        "Princess"
       ],
-      "9abbd697": [
-        "Buddy",
+      "0c422788": [
+        "大白",
+        "来福",
         "Shadow",
-        "Peanut"
+        "闪电",
+        "悟空"
       ],
-      "7f13753c": [
-        "Snowball",
-        "Luna",
-        "Stella"
+      "4646ed87": [
+        "云朵",
+        "Stella",
+        "甜甜",
+        "桃桃",
+        "Bubbles"
       ],
-      "5aa87d2e": [
-        "Wiggles",
-        "Sparkle",
-        "Zeus"
-      ],
-      "8484f476": [
-        "Fluffy",
-        "Puff",
-        "糖糖"
-      ],
-      "5879ea85": [
+      "a01ddeca": [
+        "钢铁侠",
+        "龙飞",
         "豆豆",
+        "Peanut",
+        "哪吒"
+      ],
+      "331f02cb": [
         "团子",
-        "雪球"
+        "雪球",
+        "毛毛",
+        "布丁",
+        "Fluffy"
       ],
-      "dca18c0a": [
-        "Sky",
-        "Sage",
-        "River"
+      "e021b9ae": [
+        "汤圆",
+        "福宝",
+        "Snowball",
+        "果果",
+        "跳跳"
       ],
-      "e4c4b8f7": [
-        "Bubbles",
+      "192428e1": [
+        "山水",
+        "招财",
+        "吉祥",
+        "平安",
+        "墨墨"
+      ],
+      "f534dfdd": [
+        "Coco",
+        "多多",
+        "薯条",
         "Whiskers",
-        "Boots"
+        "汉堡"
       ]
     },
     "selected_names": {}

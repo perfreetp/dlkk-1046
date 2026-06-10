@@ -192,6 +192,34 @@ class BatchTaskStep:
 
 
 @dataclass
+class AuditLogEntry:
+    timestamp: str
+    operator: Optional[str]
+    action: str
+    pet_id: Optional[str] = None
+    detail: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "timestamp": self.timestamp,
+            "operator": self.operator,
+            "action": self.action,
+            "pet_id": self.pet_id,
+            "detail": self.detail,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AuditLogEntry":
+        return cls(
+            timestamp=data["timestamp"],
+            operator=data.get("operator"),
+            action=data["action"],
+            pet_id=data.get("pet_id"),
+            detail=data.get("detail"),
+        )
+
+
+@dataclass
 class ReviewEntry:
     pet_id: str
     recommended_name: str
@@ -199,6 +227,8 @@ class ReviewEntry:
     status: str = "pending"
     note: Optional[str] = None
     reviewed_at: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    history: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -208,6 +238,8 @@ class ReviewEntry:
             "status": self.status,
             "note": self.note,
             "reviewed_at": self.reviewed_at,
+            "reviewed_by": self.reviewed_by,
+            "history": self.history,
         }
 
     @classmethod
@@ -219,6 +251,8 @@ class ReviewEntry:
             status=data.get("status", "pending"),
             note=data.get("note"),
             reviewed_at=data.get("reviewed_at"),
+            reviewed_by=data.get("reviewed_by"),
+            history=data.get("history", []),
         )
 
 
@@ -252,6 +286,7 @@ class BatchTaskRecord:
     handoff_to: Optional[str] = None
     export_confirmed: bool = False
     reviews: List[ReviewEntry] = field(default_factory=list)
+    audit_log: List[AuditLogEntry] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -269,6 +304,7 @@ class BatchTaskRecord:
             "handoff_to": self.handoff_to,
             "export_confirmed": self.export_confirmed,
             "reviews": [r.to_dict() for r in self.reviews],
+            "audit_log": [a.to_dict() for a in self.audit_log],
         }
 
     @classmethod
@@ -288,4 +324,5 @@ class BatchTaskRecord:
             handoff_to=data.get("handoff_to"),
             export_confirmed=data.get("export_confirmed", False),
             reviews=[ReviewEntry.from_dict(r) for r in data.get("reviews", [])],
+            audit_log=[AuditLogEntry.from_dict(a) for a in data.get("audit_log", [])],
         )

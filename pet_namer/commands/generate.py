@@ -1,6 +1,7 @@
 import click
 import json
 import uuid
+from collections import defaultdict
 from pathlib import Path
 from tabulate import tabulate
 from typing import List
@@ -469,6 +470,78 @@ TASK_PARAM_LABELS = {
 }
 
 
+def _pet_signature(pet_dict):
+    return (
+        str(pet_dict.get("species", "") or "").lower(),
+        str(pet_dict.get("gender", "") or "").lower(),
+        str(pet_dict.get("coat_color", "") or "").lower(),
+        str(pet_dict.get("batch", "") or "").lower(),
+    )
+
+
+def _build_sig_index(task_a, task_b, all_pets):
+    pet_by_id = {p.id: p for p in all_pets}
+
+    def _extract(task):
+        items = []
+        for r in task.reviews:
+            p = pet_by_id.get(r.pet_id)
+            item = {
+                "pet_id": r.pet_id,
+                "species": p.species if p else "",
+                "gender": p.gender if p else "",
+                "coat_color": p.coat_color if p else "",
+                "batch": p.batch if p else "",
+                "recommended_name": r.recommended_name,
+                "final_name": r.final_name,
+                "status": r.status,
+            }
+            items.append(item)
+        return items
+
+    a_items = _extract(task_a)
+    b_items = _extract(task_b)
+
+    exact = {}
+    a_by_id = {x["pet_id"]: x for x in a_items}
+    b_by_id = {x["pet_id"]: x for x in b_items}
+    matched_a_ids = set()
+    matched_b_ids = set()
+    for pid in a_by_id:
+        if pid in b_by_id:
+            exact[pid] = (a_by_id[pid], b_by_id[pid])
+            matched_a_ids.add(pid)
+            matched_b_ids.add(pid)
+
+    fuzzy = []
+    remaining_a = [x for x in a_items if x["pet_id"] not in matched_a_ids]
+    remaining_b = [x for x in b_items if x["pet_id"] not in matched_b_ids]
+
+    a_sig = defaultdict(list)
+    for x in remaining_a:
+        sig = (x["species"], x["gender"], x["coat_color"], x["batch"])
+        a_sig[sig].append(x)
+
+    b_sig = defaultdict(list)
+    for x in remaining_b:
+        sig = (x["species"], x["gender"], x["coat_color"], x["batch"])
+        b_sig[sig].append(x)
+
+    for sig in set(a_sig.keys()) & set(b_sig.keys()):
+        la = a_sig[sig]
+        lb = b_sig[sig]
+        n = min(len(la), len(lb))
+        for i in range(n):
+            fuzzy.append((la[i], lb[i]))
+            matched_a_ids.add(la[i]["pet_id"])
+            matched_b_ids.add(lb[i]["pet_id"])
+
+    only_a = [x for x in a_items if x["pet_id"] not in matched_a_ids]
+    only_b = [x for x in b_items if x["pet_id"] not in matched_b_ids]
+
+    return exact, fuzzy, only_a, only_b
+
+
 def _diff_tasks(storage, task_a_id, task_b_id, output_path=None):
     task_a = storage.get_task(task_a_id)
     task_b = storage.get_task(task_b_id)
@@ -558,40 +631,70 @@ def _diff_tasks(storage, task_a_id, task_b_id, output_path=None):
             "task_b": _fmt_val(val_b),
         })
 
-    reviews_a_map = {r.pet_id: r for r in task_a.reviews}
-    reviews_b_map = {r.pet_id: r for r in task_b.reviews}
-    all_pet_ids = list(dict.fromkeys(list(reviews_a_map.keys()) + list(reviews_b_map.keys())))
-    pet_changes = []
-
-    for pid in all_pet_ids:
-        r_a = reviews_a_map.get(pid)
-        r_b = reviews_b_map.get(pid)
-        rec_a = r_a.recommended_name if r_a else None
-        rec_b = r_b.recommended_name if r_b else None
-        fin_a = r_a.final_name if r_a else None
-        fin_b = r_b.final_name if r_b else None
-        status_a = r_a.status if r_a else None
-        status_b = r_b.status if r_b else None
-
-        if rec_a == rec_b and fin_a == fin_b and status_a == status_b:
-            continue
-
-        pet_changes.append({
-            "pet_id": pid,
-            "pet_id_short": pid[:8],
-            "recommended_name_a": rec_a,
-            "recommended_name_b": rec_b,
-            "final_name_a": fin_a,
-            "final_name_b": fin_b,
-            "status_a": status_a,
-            "status_b": status_b,
-        })
+    all_pets = storage.load_pets()
+    exact, fuzzy, only_a, only_b = _build_sig_index(task_a, task_b, all_pets)
 
     export_diffs = {
         "export_file_a": task_a.export_file,
         "export_file_b": task_b.export_file,
         "gen_record_a": task_a.generation_record_id,
         "gen_record_b": task_b.generation_record_id,
+    }
+
+    a_total = len(task_a.reviews)
+    b_total = len(task_b.reviews)
+    delta = b_total - a_total
+    n_add = len(only_b)
+    n_del = len(only_a)
+    x_count = len(exact)
+    y_count = len(fuzzy)
+
+    matched_pairs = list(exact.values()) + fuzzy
+    n_final_changed = 0
+    n1 = 0
+    n2 = 0
+    n3 = 0
+    n4 = 0
+    for item_a, item_b in matched_pairs:
+        fa = item_a.get("final_name")
+        fb = item_b.get("final_name")
+        if fa != fb:
+            n_final_changed += 1
+            if fa and fb:
+                rec_a = item_a.get("recommended_name")
+                if fa == rec_a and fb != rec_a and fb != item_b.get("recommended_name"):
+                    n1 += 1
+                else:
+                    n2 += 1
+            elif fa and not fb:
+                n3 += 1
+            elif not fa and fb:
+                n4 += 1
+
+    top_params = []
+    for d in param_diffs[:3]:
+        top_params.append(f"{d['param']}: {d['task_a']} → {d['task_b']}")
+
+    summary = {
+        "total_a": a_total,
+        "total_b": b_total,
+        "delta": delta,
+        "n_add": n_add,
+        "n_del": n_del,
+        "exact_count": x_count,
+        "fuzzy_count": y_count,
+        "final_name_changed": n_final_changed,
+        "final_name_change_types": {
+            "recommend_to_custom": n1,
+            "custom_to_another": n2,
+            "has_to_none": n3,
+            "none_to_has": n4,
+        },
+        "export_file_a": export_diffs["export_file_a"],
+        "export_file_b": export_diffs["export_file_b"],
+        "status_a": task_a.status,
+        "status_b": task_b.status,
+        "top_param_diffs": top_params,
     }
 
     click.echo(click.style("=== 批量任务对比 ===", fg="cyan", bold=True))
@@ -627,22 +730,83 @@ def _diff_tasks(storage, task_a_id, task_b_id, output_path=None):
         click.echo("  两个任务参数完全相同 ✅")
     click.echo()
 
-    click.echo(click.style("🐾 宠物名字变化", fg="yellow"))
-    if pet_changes:
+    click.echo(click.style("� 宠物匹配总结", fg="yellow"))
+    summary_rows = [
+        ["完全匹配(ID)", x_count],
+        ["模糊匹配(属性)", y_count],
+        ["仅在任务A", len(only_a)],
+        ["仅在任务B", len(only_b)],
+    ]
+    click.echo(tabulate(summary_rows, headers=["类型", "数量"], tablefmt="simple"))
+    click.echo()
+
+    def _build_match_rows(pairs, mark_fuzzy=False):
         rows = []
-        for c in pet_changes:
-            status_change = f"{c['status_a'] or '-'} → {c['status_b'] or '-'}"
+        for item_a, item_b in pairs:
+            pid_display = item_a["pet_id"][:8]
+            if mark_fuzzy:
+                pid_display += "*"
+            status_change = f"{item_a.get('status') or '-'} → {item_b.get('status') or '-'}"
             rows.append([
-                c["pet_id_short"],
-                c["recommended_name_a"] or "-",
-                c["recommended_name_b"] or "-",
-                c["final_name_a"] or "-",
-                c["final_name_b"] or "-",
+                pid_display,
+                item_a.get("recommended_name") or "-",
+                item_b.get("recommended_name") or "-",
+                item_a.get("final_name") or "-",
+                item_b.get("final_name") or "-",
                 status_change,
             ])
-        click.echo(tabulate(rows, headers=["pet_id", "任务A推荐名", "任务B推荐名", "任务A最终名", "任务B最终名", "状态变化"], tablefmt="simple"))
+        return rows
+
+    headers = ["pet_id", "任务A推荐名", "任务B推荐名", "任务A最终名", "任务B最终名", "状态变化"]
+
+    click.echo(click.style("🐾 完全匹配的宠物（ID相同）", fg="yellow"))
+    exact_rows = _build_match_rows(list(exact.values()), mark_fuzzy=False)
+    if exact_rows:
+        click.echo(tabulate(exact_rows, headers=headers, tablefmt="simple"))
     else:
-        click.echo("  没有宠物名字变化 ✅")
+        click.echo("  (无)")
+    click.echo()
+
+    click.echo(click.style("🐾 模糊匹配的宠物（属性相同）", fg="yellow"))
+    fuzzy_rows = _build_match_rows(fuzzy, mark_fuzzy=True)
+    if fuzzy_rows:
+        click.echo(tabulate(fuzzy_rows, headers=headers, tablefmt="simple"))
+        click.echo("  * 注: pet_id 带 * 标记表示按 (物种,性别,毛色,批次) 属性进行的模糊匹配")
+    else:
+        click.echo("  (无)")
+    click.echo()
+
+    def _build_only_rows(items):
+        rows = []
+        for it in items:
+            rows.append([
+                it["pet_id"][:8],
+                it.get("species") or "-",
+                it.get("gender") or "-",
+                it.get("coat_color") or "-",
+                it.get("batch") or "-",
+                it.get("recommended_name") or "-",
+                it.get("final_name") or "-",
+                it.get("status") or "-",
+            ])
+        return rows
+
+    only_headers = ["pet_id", "物种", "性别", "毛色", "批次", "推荐名", "最终名", "状态"]
+
+    click.echo(click.style("❌ 仅在任务A中的宠物", fg="yellow"))
+    only_a_rows = _build_only_rows(only_a)
+    if only_a_rows:
+        click.echo(tabulate(only_a_rows, headers=only_headers, tablefmt="simple"))
+    else:
+        click.echo("  (无)")
+    click.echo()
+
+    click.echo(click.style("✅ 仅在任务B中的宠物", fg="yellow"))
+    only_b_rows = _build_only_rows(only_b)
+    if only_b_rows:
+        click.echo(tabulate(only_b_rows, headers=only_headers, tablefmt="simple"))
+    else:
+        click.echo("  (无)")
     click.echo()
 
     click.echo(click.style("📤 导出文件对比", fg="yellow"))
@@ -653,17 +817,73 @@ def _diff_tasks(storage, task_a_id, task_b_id, output_path=None):
     click.echo(tabulate(export_rows, headers=["", "任务A", "任务B"], tablefmt="simple"))
     click.echo()
 
+    delta_sign = "+" if delta > 0 else ""
+    click.echo(click.style("🔔 活动复盘摘要", fg="yellow"))
+    click.echo("-" * 50)
+    click.echo(f"  总宠物变化：A={a_total} 只 -> B={b_total} 只（净变化: {delta_sign}{delta}）")
+    click.echo(f"  新增宠物（B比A多）：{n_add} 只")
+    click.echo(f"  减少宠物（A比B多）：{n_del} 只")
+    click.echo(f"  宠物匹配：{x_count} 只ID完全相同，{y_count} 只属性相似")
+    click.echo(f"  正式名变化：{n_final_changed} 只匹配宠物的正式名发生了改变")
+    if n_final_changed > 0:
+        click.echo(f"    - 其中：接受推荐 -> 自定义名：{n1}")
+        click.echo(f"            自定义 -> 另一自定义：{n2}")
+        click.echo(f"            有正式名 -> 无正式名：{n3}")
+        click.echo(f"            无 -> 有：{n4}")
+    click.echo(f"  导出文件变化：")
+    click.echo(f"    A: {export_diffs['export_file_a'] or '(未导出)'}")
+    click.echo(f"    B: {export_diffs['export_file_b'] or '(未导出)'}")
+    click.echo(f"  审核状态变化：A:{task_a.status} -> B:{task_b.status}")
+    if top_params:
+        click.echo(f"  策略变化：")
+        for tp in top_params:
+            click.echo(f"    - {tp}")
+    else:
+        click.echo(f"  策略变化：参数无显著差异")
+    click.echo("-" * 50)
+    click.echo()
+
     if output_path:
-        _write_task_diff_report(output_path, info_data, step_diffs, param_diffs, pet_changes, export_diffs)
+        _write_task_diff_report(
+            output_path, info_data, step_diffs, param_diffs,
+            exact, fuzzy, only_a, only_b, export_diffs, summary
+        )
         click.echo(click.style(f"✅ 对比报告已导出到: {output_path}", fg="green"))
 
 
 def _write_task_diff_report(output_path: str, info_data: dict, step_diffs: list,
-                            param_diffs: list, pet_changes: list, export_diffs: dict):
+                            param_diffs: list, exact: dict, fuzzy: list,
+                            only_a: list, only_b: list, export_diffs: dict,
+                            summary: dict):
     path = Path(output_path)
     suffix = path.suffix.lower()
     task_a = info_data["task_a"]
     task_b = info_data["task_b"]
+
+    def _format_pair_list(pairs, mark_fuzzy=False):
+        result = []
+        for item_a, item_b in pairs:
+            pid = item_a["pet_id"]
+            if mark_fuzzy:
+                pid = pid + "*"
+            result.append({
+                "pet_id": pid,
+                "pet_id_short": pid[:8],
+                "pet_a": item_a,
+                "pet_b": item_b,
+            })
+        return result
+
+    exact_matches_list = [
+        {
+            "pet_id": pid,
+            "pet_id_short": pid[:8],
+            "pet_a": item_a,
+            "pet_b": item_b,
+        }
+        for pid, (item_a, item_b) in exact.items()
+    ]
+    fuzzy_matches_list = _format_pair_list(fuzzy, mark_fuzzy=True)
 
     if suffix == ".json":
         report = {
@@ -671,8 +891,12 @@ def _write_task_diff_report(output_path: str, info_data: dict, step_diffs: list,
             "basic_info": info_data,
             "step_diffs": step_diffs,
             "param_diffs": param_diffs,
-            "pet_changes": pet_changes,
+            "exact_matches": exact_matches_list,
+            "fuzzy_matches": fuzzy_matches_list,
+            "only_in_a": only_a,
+            "only_in_b": only_b,
             "export_diffs": export_diffs,
+            "summary": summary,
         }
         path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     else:
@@ -712,20 +936,90 @@ def _write_task_diff_report(output_path: str, info_data: dict, step_diffs: list,
             lines.append("  两个任务参数完全相同")
         lines.append("")
 
-        lines.append("【宠物名字变化】")
-        if pet_changes:
-            for c in pet_changes:
-                lines.append(f"  - {c['pet_id_short']}:")
-                lines.append(f"      推荐名: {c['recommended_name_a'] or '-'} → {c['recommended_name_b'] or '-'}")
-                lines.append(f"      最终名: {c['final_name_a'] or '-'} → {c['final_name_b'] or '-'}")
-                lines.append(f"      状态:   {c['status_a'] or '-'} → {c['status_b'] or '-'}")
+        lines.append("【宠物匹配总结】")
+        lines.append(f"  完全匹配(ID):  {summary['exact_count']}")
+        lines.append(f"  模糊匹配(属性): {summary['fuzzy_count']}")
+        lines.append(f"  仅在任务A:     {len(only_a)}")
+        lines.append(f"  仅在任务B:     {len(only_b)}")
+        lines.append("")
+
+        lines.append("【完全匹配的宠物（ID相同）】")
+        if exact_matches_list:
+            for m in exact_matches_list:
+                ia, ib = m["pet_a"], m["pet_b"]
+                lines.append(f"  - {m['pet_id_short']}:")
+                lines.append(f"      推荐名: {ia.get('recommended_name') or '-'} → {ib.get('recommended_name') or '-'}")
+                lines.append(f"      最终名: {ia.get('final_name') or '-'} → {ib.get('final_name') or '-'}")
+                lines.append(f"      状态:   {ia.get('status') or '-'} → {ib.get('status') or '-'}")
         else:
-            lines.append("  没有宠物名字变化")
+            lines.append("  (无)")
+        lines.append("")
+
+        lines.append("【模糊匹配的宠物（属性相同）】")
+        if fuzzy_matches_list:
+            for m in fuzzy_matches_list:
+                ia, ib = m["pet_a"], m["pet_b"]
+                lines.append(f"  - {m['pet_id_short']}* (A={ia['pet_id'][:8]} ↔ B={ib['pet_id'][:8]}):")
+                lines.append(f"      推荐名: {ia.get('recommended_name') or '-'} → {ib.get('recommended_name') or '-'}")
+                lines.append(f"      最终名: {ia.get('final_name') or '-'} → {ib.get('final_name') or '-'}")
+                lines.append(f"      状态:   {ia.get('status') or '-'} → {ib.get('status') or '-'}")
+            lines.append("  * 注: 带 * 标记表示按 (物种,性别,毛色,批次) 属性进行的模糊匹配")
+        else:
+            lines.append("  (无)")
+        lines.append("")
+
+        lines.append("【仅在任务A中的宠物】")
+        if only_a:
+            for it in only_a:
+                lines.append(f"  - {it['pet_id'][:8]}: 物种={it.get('species') or '-'}, 性别={it.get('gender') or '-'}, "
+                             f"毛色={it.get('coat_color') or '-'}, 批次={it.get('batch') or '-'}, "
+                             f"推荐名={it.get('recommended_name') or '-'}, 最终名={it.get('final_name') or '-'}, "
+                             f"状态={it.get('status') or '-'}")
+        else:
+            lines.append("  (无)")
+        lines.append("")
+
+        lines.append("【仅在任务B中的宠物】")
+        if only_b:
+            for it in only_b:
+                lines.append(f"  - {it['pet_id'][:8]}: 物种={it.get('species') or '-'}, 性别={it.get('gender') or '-'}, "
+                             f"毛色={it.get('coat_color') or '-'}, 批次={it.get('batch') or '-'}, "
+                             f"推荐名={it.get('recommended_name') or '-'}, 最终名={it.get('final_name') or '-'}, "
+                             f"状态={it.get('status') or '-'}")
+        else:
+            lines.append("  (无)")
         lines.append("")
 
         lines.append("【导出文件对比】")
         lines.append(f"  导出文件:   A={export_diffs['export_file_a'] or '-'}, B={export_diffs['export_file_b'] or '-'}")
         lines.append(f"  生成记录ID: A={export_diffs['gen_record_a'] or '-'}, B={export_diffs['gen_record_b'] or '-'}")
+        lines.append("")
+
+        lines.append("【活动复盘摘要】")
+        lines.append("-" * 50)
+        delta_sign = "+" if summary["delta"] > 0 else ""
+        lines.append(f"  总宠物变化：A={summary['total_a']} 只 -> B={summary['total_b']} 只（净变化: {delta_sign}{summary['delta']}）")
+        lines.append(f"  新增宠物（B比A多）：{summary['n_add']} 只")
+        lines.append(f"  减少宠物（A比B多）：{summary['n_del']} 只")
+        lines.append(f"  宠物匹配：{summary['exact_count']} 只ID完全相同，{summary['fuzzy_count']} 只属性相似")
+        lines.append(f"  正式名变化：{summary['final_name_changed']} 只匹配宠物的正式名发生了改变")
+        if summary["final_name_changed"] > 0:
+            ftypes = summary["final_name_change_types"]
+            lines.append(f"    - 其中：接受推荐 -> 自定义名：{ftypes['recommend_to_custom']}")
+            lines.append(f"            自定义 -> 另一自定义：{ftypes['custom_to_another']}")
+            lines.append(f"            有正式名 -> 无正式名：{ftypes['has_to_none']}")
+            lines.append(f"            无 -> 有：{ftypes['none_to_has']}")
+        lines.append(f"  导出文件变化：")
+        lines.append(f"    A: {summary['export_file_a'] or '(未导出)'}")
+        lines.append(f"    B: {summary['export_file_b'] or '(未导出)'}")
+        lines.append(f"  审核状态变化：A:{summary['status_a']} -> B:{summary['status_b']}")
+        if summary["top_param_diffs"]:
+            lines.append(f"  策略变化：")
+            for tp in summary["top_param_diffs"]:
+                lines.append(f"    - {tp}")
+        else:
+            lines.append(f"  策略变化：参数无显著差异")
+        lines.append("-" * 50)
         lines.append("")
 
         path.write_text("\n".join(lines), encoding="utf-8")

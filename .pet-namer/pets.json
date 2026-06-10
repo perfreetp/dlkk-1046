@@ -1,6 +1,6 @@
 [
   {
-    "id": "0c3867ff",
+    "id": "71bdbf85",
     "species": "cat",
     "gender": "female",
     "age": "幼年",
@@ -22,10 +22,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786023"
+    "created_at": "2026-06-10T22:32:02.495065"
   },
   {
-    "id": "80c39730",
+    "id": "d902c74e",
     "species": "cat",
     "gender": "male",
     "age": "幼年",
@@ -47,10 +47,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786212"
+    "created_at": "2026-06-10T22:32:02.495176"
   },
   {
-    "id": "e5639311",
+    "id": "f6bc11f3",
     "species": "cat",
     "gender": "female",
     "age": "成年",
@@ -72,10 +72,10 @@
     ],
     "favorite_names": [],
     "notes": "已绝育",
-    "created_at": "2026-06-10T22:06:33.786324"
+    "created_at": "2026-06-10T22:32:02.495246"
   },
   {
-    "id": "4f75a737",
+    "id": "57dff927",
     "species": "dog",
     "gender": "male",
     "age": "青年",
@@ -97,10 +97,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786395"
+    "created_at": "2026-06-10T22:32:02.495308"
   },
   {
-    "id": "ab1c7bed",
+    "id": "b8069afc",
     "species": "dog",
     "gender": "female",
     "age": "成年",
@@ -122,10 +122,10 @@
     ],
     "favorite_names": [],
     "notes": "已打疫苗",
-    "created_at": "2026-06-10T22:06:33.786457"
+    "created_at": "2026-06-10T22:32:02.495363"
   },
   {
-    "id": "63aa02ff",
+    "id": "21f8a41f",
     "species": "dog",
     "gender": "male",
     "age": "幼年",
@@ -147,10 +147,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786515"
+    "created_at": "2026-06-10T22:32:02.495418"
   },
   {
-    "id": "4945dcdd",
+    "id": "016369aa",
     "species": "rabbit",
     "gender": "female",
     "age": "幼年",
@@ -172,10 +172,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786574"
+    "created_at": "2026-06-10T22:32:02.495485"
   },
   {
-    "id": "81229082",
+    "id": "af7765cd",
     "species": "rabbit",
     "gender": "male",
     "age": "青年",
@@ -197,10 +197,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786629"
+    "created_at": "2026-06-10T22:32:02.495543"
   },
   {
-    "id": "d57f0237",
+    "id": "4d87a2a0",
     "species": "cat",
     "gender": "male",
     "age": "成年",
@@ -212,7 +212,7 @@
     ],
     "batch": "2024-04-C",
     "source": "社区投喂",
-    "selected_name": null,
+    "selected_name": "黑武士",
     "candidate_names": [
       "黑武士",
       "山水",
@@ -222,10 +222,10 @@
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:06:33.786685"
+    "created_at": "2026-06-10T22:32:02.495599"
   },
   {
-    "id": "f2e96519",
+    "id": "bf95b107",
     "species": "cat",
     "gender": "female",
     "age": "幼年",
@@ -247,10 +247,10 @@
     ],
     "favorite_names": [],
     "notes": "小名叫花花",
-    "created_at": "2026-06-10T22:06:33.786779"
+    "created_at": "2026-06-10T22:32:02.495653"
   },
   {
-    "id": "c45716ee",
+    "id": "cec4413c",
     "species": "cat",
     "gender": "female",
     "age": "幼年",
@@ -265,15 +265,17 @@
     "selected_name": null,
     "candidate_names": [
       "Bella",
+      "棉花糖",
       "Angel",
-      "Lucy"
+      "Lucy",
+      "Luna"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.831546"
+    "created_at": "2026-06-10T22:33:49.044189"
   },
   {
-    "id": "d9982ed2",
+    "id": "6c875624",
     "species": "cat",
     "gender": "male",
     "age": "幼年",
@@ -288,15 +290,17 @@
     "selected_name": null,
     "candidate_names": [
       "Max",
+      "可乐",
       "Milo",
-      "Charlie"
+      "Charlie",
+      "Buddy"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.831730"
+    "created_at": "2026-06-10T22:33:49.044296"
   },
   {
-    "id": "899778e7",
+    "id": "865faf7e",
     "species": "cat",
     "gender": "female",
     "age": "成年",
@@ -310,16 +314,18 @@
     "source": "社区投喂",
     "selected_name": null,
     "candidate_names": [
-      "Princess",
-      "Sunny",
-      "Coco"
+      "糖糖",
+      "如意",
+      "欢欢",
+      "妞妞",
+      "Princess"
     ],
     "favorite_names": [],
     "notes": "已绝育",
-    "created_at": "2026-06-10T22:10:10.831843"
+    "created_at": "2026-06-10T22:33:49.044364"
   },
   {
-    "id": "9abbd697",
+    "id": "0c422788",
     "species": "dog",
     "gender": "male",
     "age": "青年",
@@ -333,16 +339,18 @@
     "source": "爱心救助站",
     "selected_name": null,
     "candidate_names": [
-      "Buddy",
+      "大白",
+      "来福",
       "Shadow",
-      "Peanut"
+      "闪电",
+      "悟空"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.831952"
+    "created_at": "2026-06-10T22:33:49.044425"
   },
   {
-    "id": "7f13753c",
+    "id": "4646ed87",
     "species": "dog",
     "gender": "female",
     "age": "成年",
@@ -356,16 +364,18 @@
     "source": "原主人弃养",
     "selected_name": null,
     "candidate_names": [
-      "Snowball",
-      "Luna",
-      "Stella"
+      "云朵",
+      "Stella",
+      "甜甜",
+      "桃桃",
+      "Bubbles"
     ],
     "favorite_names": [],
     "notes": "已打疫苗",
-    "created_at": "2026-06-10T22:10:10.832073"
+    "created_at": "2026-06-10T22:33:49.044482"
   },
   {
-    "id": "5aa87d2e",
+    "id": "a01ddeca",
     "species": "dog",
     "gender": "male",
     "age": "幼年",
@@ -379,16 +389,18 @@
     "source": "爱心救助站",
     "selected_name": null,
     "candidate_names": [
-      "Wiggles",
-      "Sparkle",
-      "Zeus"
+      "钢铁侠",
+      "龙飞",
+      "豆豆",
+      "Peanut",
+      "哪吒"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.832167"
+    "created_at": "2026-06-10T22:33:49.044540"
   },
   {
-    "id": "8484f476",
+    "id": "331f02cb",
     "species": "rabbit",
     "gender": "female",
     "age": "幼年",
@@ -402,16 +414,18 @@
     "source": "宠物医院",
     "selected_name": null,
     "candidate_names": [
-      "Fluffy",
-      "Puff",
-      "糖糖"
+      "团子",
+      "雪球",
+      "毛毛",
+      "布丁",
+      "Fluffy"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.832267"
+    "created_at": "2026-06-10T22:33:49.044600"
   },
   {
-    "id": "5879ea85",
+    "id": "e021b9ae",
     "species": "rabbit",
     "gender": "male",
     "age": "青年",
@@ -425,16 +439,18 @@
     "source": "爱心救助站",
     "selected_name": null,
     "candidate_names": [
-      "豆豆",
-      "团子",
-      "雪球"
+      "汤圆",
+      "福宝",
+      "Snowball",
+      "果果",
+      "跳跳"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.832332"
+    "created_at": "2026-06-10T22:33:49.044654"
   },
   {
-    "id": "dca18c0a",
+    "id": "192428e1",
     "species": "cat",
     "gender": "male",
     "age": "成年",
@@ -448,16 +464,18 @@
     "source": "社区投喂",
     "selected_name": null,
     "candidate_names": [
-      "Sky",
-      "Sage",
-      "River"
+      "山水",
+      "招财",
+      "吉祥",
+      "平安",
+      "墨墨"
     ],
     "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T22:10:10.832391"
+    "created_at": "2026-06-10T22:33:49.044716"
   },
   {
-    "id": "e4c4b8f7",
+    "id": "f534dfdd",
     "species": "cat",
     "gender": "female",
     "age": "幼年",
@@ -471,12 +489,14 @@
     "source": "爱心救助站",
     "selected_name": null,
     "candidate_names": [
-      "Bubbles",
+      "Coco",
+      "多多",
+      "薯条",
       "Whiskers",
-      "Boots"
+      "汉堡"
     ],
     "favorite_names": [],
     "notes": "小名叫花花",
-    "created_at": "2026-06-10T22:10:10.832476"
+    "created_at": "2026-06-10T22:33:49.044790"
   }
 ]

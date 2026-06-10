@@ -50,11 +50,14 @@ GENDER_CN = {
 @click.option("--task-id", help="关联的批量任务ID，用于生成交接摘要信息")
 @click.option("--owner", help="负责人姓名")
 @click.option("--store", help="门店名称")
+@click.option("--only-task", help="仅导出该批量任务里包含的宠物，基于 reviews 中的 pet_id 列表")
+@click.option("--show-summary/--no-show-summary", default=True, help="是否在终端显示交接摘要，默认显示")
 @pass_storage
 def export(storage, fmt, output, pet_ids, batch, species, named_only,
            include_candidates, include_favorites, group_by_species,
            contact_phone, location, event_date, event_name, organizer, event_note,
-           qr_code, custom_fields, template, preview, task_id, owner, store):
+           qr_code, custom_fields, template, preview, task_id, owner, store,
+           only_task, show_summary):
     """导出领养海报名单或数据文件"""
 
     template_data = _load_template(template)
@@ -92,6 +95,17 @@ def export(storage, fmt, output, pet_ids, batch, species, named_only,
     if named_only:
         pets = [p for p in pets if p.selected_name]
 
+    if only_task:
+        task = storage.get_task(only_task)
+        if not task:
+            raise click.ClickException(f"找不到任务: {only_task}")
+        task_pet_ids = {r.pet_id for r in task.reviews}
+        pets = [p for p in pets if p.id in task_pet_ids]
+        if not pets:
+            click.echo(click.style("⚠️  任务中暂无可导出的宠物（可能审核未通过）", fg="yellow"))
+    else:
+        task = None
+
     if not pets:
         raise click.ClickException("没有找到符合条件的宠物")
 
@@ -99,7 +113,7 @@ def export(storage, fmt, output, pet_ids, batch, species, named_only,
         _export_list(pets, include_candidates, include_favorites)
         return
 
-    task_obj = storage.get_task(task_id) if task_id else None
+    task_obj = task or (storage.get_task(task_id) if task_id else None)
     handover_summary = _build_handover_summary(
         pets,
         reviews=task_obj.reviews if task_obj else None,
@@ -117,9 +131,14 @@ def export(storage, fmt, output, pet_ids, batch, species, named_only,
     elif fmt == "excel":
         if not output:
             output = "adoption_list.xlsx"
+        if show_summary and handover_summary:
+            _print_handover_summary_table(handover_summary)
         _generate_excel(storage, pets, output, include_candidates, include_favorites, template_data, group_by_species, handover_summary)
         click.echo(click.style(f"\n已导出到 {output}", fg="green"))
         return
+
+    if show_summary and handover_summary:
+        _print_handover_summary_table(handover_summary)
 
     if preview and preview > 0:
         lines = content.splitlines()
@@ -168,44 +187,126 @@ def _load_template(template_path: str = None) -> dict:
 def _build_handover_summary(pets: List[Pet], reviews: Optional[List[ReviewEntry]] = None,
                             task: Optional[BatchTaskRecord] = None,
                             owner: Optional[str] = None, store: Optional[str] = None) -> dict:
-    species_breakdown: Dict[str, Dict[str, int]] = {}
-    for sp_key in ["cat", "dog", "rabbit"]:
-        sp_pets = [p for p in pets if p.species == sp_key]
-        sp_named = sum(1 for p in sp_pets if p.selected_name)
-        species_breakdown[sp_key] = {
-            "count": len(sp_pets),
-            "named_count": sp_named,
-            "missing_count": len(sp_pets) - sp_named,
-        }
+    from datetime import datetime
+    from collections import defaultdict
 
-    named_count = sum(1 for p in pets if p.selected_name)
+    review_by_pet = {}
+    if reviews:
+        for r in reviews:
+            review_by_pet[r.pet_id] = r
+
+    by_species = defaultdict(lambda: {"count": 0, "named_count": 0, "missing_count": 0,
+                                       "confirmed_count": 0, "pending_count": 0, "rejected_count": 0})
+
+    total_confirmed = 0
+    total_pending = 0
+    total_rejected = 0
+
+    for p in pets:
+        spec = p.species or "unknown"
+        by_species[spec]["count"] += 1
+        if p.selected_name:
+            by_species[spec]["named_count"] += 1
+        else:
+            by_species[spec]["missing_count"] += 1
+
+        if p.id in review_by_pet:
+            r = review_by_pet[p.id]
+            if r.status in ("accepted", "modified"):
+                by_species[spec]["confirmed_count"] += 1
+                total_confirmed += 1
+            elif r.status == "pending":
+                by_species[spec]["pending_count"] += 1
+                total_pending += 1
+            elif r.status == "rejected":
+                by_species[spec]["rejected_count"] += 1
+                total_rejected += 1
+
+    species_breakdown = dict(by_species)
     total_count = len(pets)
+    named_count = sum(1 for p in pets if p.selected_name)
+    missing_count = total_count - named_count
 
     summary = {
         "generated_at": datetime.now().isoformat(),
         "owner": owner or (task.owner if task else None),
         "store": store or (task.store if task else None),
-        "total_count": total_count,
-        "species_breakdown": species_breakdown,
-        "named_count": named_count,
-        "missing_count": total_count - named_count,
         "task_id": task.id if task else None,
         "task_status": task.status if task else None,
+        "total_count": total_count,
+        "named_count": named_count,
+        "missing_count": missing_count,
+        "total_confirmed": total_confirmed,
+        "total_pending": total_pending,
+        "total_rejected": total_rejected,
+        "species_breakdown": species_breakdown,
+        "review_stats": None,
     }
-
-    if reviews:
-        review_stats = {
-            "accepted": 0,
-            "modified": 0,
-            "rejected": 0,
-            "pending": 0,
+    if reviews is not None:
+        summary["review_stats"] = {
+            "accepted": sum(1 for r in reviews if r.status == "accepted"),
+            "modified": sum(1 for r in reviews if r.status == "modified"),
+            "rejected": sum(1 for r in reviews if r.status == "rejected"),
+            "pending": sum(1 for r in reviews if r.status == "pending"),
         }
-        for r in reviews:
-            if r.status in review_stats:
-                review_stats[r.status] += 1
-        summary["review_stats"] = review_stats
-
     return summary
+
+
+def _print_handover_summary_table(handover_summary: dict):
+    hs = handover_summary
+    click.echo()
+    click.echo(click.style("=" * 70, fg="cyan"))
+    click.echo(click.style(f"{'📋 交接摘要':^70}", fg="cyan", bold=True))
+    click.echo(click.style("=" * 70, fg="cyan"))
+
+    info_rows = [
+        ["生成时间", hs.get("generated_at", "")],
+        ["负责人", hs.get("owner") or "-"],
+        ["门店", hs.get("store") or "-"],
+        ["任务ID", hs.get("task_id") or "-"],
+        ["任务状态", hs.get("task_status") or "-"],
+    ]
+    for row in info_rows:
+        click.echo(f"  {row[0]:<10}: {row[1]}")
+
+    click.echo(click.style("-" * 70, fg="cyan"))
+    click.echo(click.style(f"  {'统计项':<12} {'总数':>6} {'已起名':>6} {'缺名额':>6} {'已确认':>6} {'待确认':>6} {'已拒绝':>6}", fg="yellow", bold=True))
+    click.echo(click.style("-" * 70, fg="cyan"))
+
+    total_row = [
+        "合计",
+        hs.get("total_count", 0),
+        hs.get("named_count", 0),
+        hs.get("missing_count", 0),
+        hs.get("total_confirmed", 0),
+        hs.get("total_pending", 0),
+        hs.get("total_rejected", 0),
+    ]
+    click.echo(f"  {total_row[0]:<12} {total_row[1]:>6} {total_row[2]:>6} {total_row[3]:>6} {total_row[4]:>6} {total_row[5]:>6} {total_row[6]:>6}")
+
+    species_breakdown = hs.get("species_breakdown", {})
+    for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
+        sp_info = species_breakdown.get(sp_key)
+        if sp_info and sp_info.get("count", 0) > 0:
+            sp_row = [
+                sp_label,
+                sp_info.get("count", 0),
+                sp_info.get("named_count", 0),
+                sp_info.get("missing_count", 0),
+                sp_info.get("confirmed_count", 0),
+                sp_info.get("pending_count", 0),
+                sp_info.get("rejected_count", 0),
+            ]
+            click.echo(f"  {sp_row[0]:<12} {sp_row[1]:>6} {sp_row[2]:>6} {sp_row[3]:>6} {sp_row[4]:>6} {sp_row[5]:>6} {sp_row[6]:>6}")
+
+    review_stats = hs.get("review_stats")
+    if review_stats:
+        click.echo(click.style("-" * 70, fg="cyan"))
+        click.echo(click.style("  审核统计:", fg="magenta", bold=True))
+        click.echo(f"    已接受: {review_stats.get('accepted', 0)}  |  已修改: {review_stats.get('modified', 0)}  |  已拒绝: {review_stats.get('rejected', 0)}  |  待审核: {review_stats.get('pending', 0)}")
+
+    click.echo(click.style("=" * 70, fg="cyan"))
+    click.echo()
 
 
 def _export_list(pets: List[Pet], include_candidates: bool, include_favorites: bool):
@@ -349,8 +450,10 @@ def _generate_poster(pets: List[Pet], include_candidates: bool, include_favorite
         lines.append(f"🐾 总计 {total} 只：已起名 {named} 只，未起名 {missing} 只")
         species_breakdown = hs.get("species_breakdown", {})
         for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
-            sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0})
-            lines.append(f"  {sp_label} {sp_info['count']} 只（已起名 {sp_info['named_count']}，缺 {sp_info['missing_count']}）")
+            sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0,
+                                                      "confirmed_count": 0, "pending_count": 0, "rejected_count": 0})
+            lines.append(f"  {sp_label} {sp_info['count']} 只（已起名 {sp_info['named_count']}，缺 {sp_info['missing_count']}）"
+                         f"(已确认{sp_info['confirmed_count']}, 待确认{sp_info['pending_count']}, 拒绝{sp_info['rejected_count']})")
         review_stats = hs.get("review_stats")
         if review_stats:
             lines.append(
@@ -359,6 +462,11 @@ def _generate_poster(pets: List[Pet], include_candidates: bool, include_favorite
                 f"已拒绝 {review_stats.get('rejected', 0)} / "
                 f"待审核 {review_stats.get('pending', 0)}"
             )
+        tc = hs.get("total_confirmed", 0)
+        tp = hs.get("total_pending", 0)
+        tr = hs.get("total_rejected", 0)
+        tm = hs.get("missing_count", 0)
+        lines.append(f"🔍 确认状态：已确认 {tc} / 待确认 {tp} / 已拒绝 {tr} / 缺名额 {tm}")
         lines.append("=" * width)
         lines.append("")
 
@@ -524,14 +632,19 @@ def _generate_csv(pets: List[Pet], include_candidates: bool, include_favorites: 
         writer.writerow([
             f"# 总览: 总计{hs.get('total_count', 0)}只 / "
             f"已起名{hs.get('named_count', 0)} / "
-            f"缺{hs.get('missing_count', 0)}"
+            f"缺{hs.get('missing_count', 0)} / "
+            f"已确认{hs.get('total_confirmed', 0)} / "
+            f"待确认{hs.get('total_pending', 0)} / "
+            f"拒绝{hs.get('total_rejected', 0)}"
         ])
         species_breakdown = hs.get("species_breakdown", {})
         species_parts = []
         for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
-            sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0})
+            sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0,
+                                                      "confirmed_count": 0, "pending_count": 0, "rejected_count": 0})
             species_parts.append(
-                f"{sp_label} {sp_info['count']}(已{sp_info['named_count']}/缺{sp_info['missing_count']})"
+                f"{sp_label} {sp_info['count']}(已{sp_info['named_count']},缺{sp_info['missing_count']},"
+                f"确{sp_info['confirmed_count']},待{sp_info['pending_count']},拒{sp_info['rejected_count']})"
             )
         writer.writerow([f"# 物种: {' | '.join(species_parts)}"])
         review_stats = hs.get("review_stats")
@@ -678,13 +791,20 @@ def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: b
                 summary_rows.append({"项": "总宠物数", "值": hs.get("total_count", 0)})
                 summary_rows.append({"项": "已起名数", "值": hs.get("named_count", 0)})
                 summary_rows.append({"项": "缺名额", "值": hs.get("missing_count", 0)})
+                summary_rows.append({"项": "已确认总数", "值": hs.get("total_confirmed", 0)})
+                summary_rows.append({"项": "待确认总数", "值": hs.get("total_pending", 0)})
+                summary_rows.append({"项": "已拒绝总数", "值": hs.get("total_rejected", 0)})
                 species_breakdown = hs.get("species_breakdown", {})
                 for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
-                    sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0})
+                    sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0,
+                                                              "confirmed_count": 0, "pending_count": 0, "rejected_count": 0})
                     summary_rows.append({
                         "项": f"{sp_label}数量",
                         "值": f"{sp_info['count']} (已起名{sp_info['named_count']}/缺{sp_info['missing_count']})"
                     })
+                    summary_rows.append({"项": f"{sp_label}-已确认", "值": sp_info["confirmed_count"]})
+                    summary_rows.append({"项": f"{sp_label}-待确认", "值": sp_info["pending_count"]})
+                    summary_rows.append({"项": f"{sp_label}-已拒绝", "值": sp_info["rejected_count"]})
                 review_stats = hs.get("review_stats")
                 if review_stats:
                     summary_rows.append({"项": "审核-已接受", "值": review_stats.get("accepted", 0)})

@@ -8,7 +8,7 @@ from typing import List, Tuple, Dict, Optional
 
 from ..models import (
     Pet, GenerationParams, GenerationRecord, NameEntry,
-    BatchTaskRecord, BatchTaskStep, ReviewEntry,
+    BatchTaskRecord, BatchTaskStep, ReviewEntry, AuditLogEntry,
 )
 from ..generator import NameGenerator
 from ..cli import pass_storage
@@ -198,6 +198,13 @@ def batch(storage, import_file, batch_name, count, style, language, species,
         task = storage.get_task(confirm_export_id)
         if not task:
             raise click.ClickException(f"找不到任务: {confirm_export_id}")
+        if not task.export_file:
+            raise click.ClickException(f"任务 {confirm_export_id[:8]} 没有导出文件，无法标记为已确认导出")
+        now = _dt.datetime.now().isoformat()
+        task.audit_log.append(AuditLogEntry(
+            timestamp=now, operator=task.owner, action="confirm_export",
+            detail=f"确认导出: {task.export_file}"
+        ))
         task.export_confirmed = True
         task.status = "export_confirmed"
         if task.handoff_status == "in_progress":
@@ -221,6 +228,12 @@ def batch(storage, import_file, batch_name, count, style, language, species,
         task.handoff_status = status_val
         if person_val:
             task.handoff_to = person_val
+        task.audit_log.append(AuditLogEntry(
+            timestamp=_dt.datetime.now().isoformat(),
+            operator=task.owner,
+            action="set_handoff",
+            detail=f"交接: {status_val} -> {person_val or '-'}"
+        ))
         storage.update_task(task)
         person_msg = f" → {person_val}" if person_val else ""
         click.echo(click.style(f"✅ 任务 {task.id[:8]} 交接状态已设为 {status_val}{person_msg}", fg="green"))
@@ -365,6 +378,12 @@ def batch(storage, import_file, batch_name, count, style, language, species,
                         status="pending",
                     ))
         task.reviews = reviews
+        task.audit_log.append(AuditLogEntry(
+            timestamp=_dt.datetime.now().isoformat(),
+            operator=task.owner,
+            action="create_reviews",
+            detail=f"创建 {len(task.reviews)} 条待审核名单"
+        ))
         task.status = "pending_review"
         storage.update_task(task)
         click.echo()
@@ -390,7 +409,17 @@ def batch(storage, import_file, batch_name, count, style, language, species,
             storage.update_task(task)
             click.echo()
 
-        task.status = "completed"
+        if task.reviews:
+            n_pending = sum(1 for r in task.reviews if r.status == "pending")
+            n_rejected = sum(1 for r in task.reviews if r.status == "rejected")
+            n_ok = sum(1 for r in task.reviews if r.status in ("accepted", "modified"))
+            if n_ok == len(task.reviews) - n_rejected and n_pending == 0:
+                if task.status != "export_confirmed":
+                    task.status = "reviewed"
+            else:
+                task.status = "pending_review" if n_pending == len(task.reviews) else "review_in_progress"
+        else:
+            task.status = "completed"
         _show_task_summary(task, failed_pets)
 
     except Exception as e:
@@ -565,6 +594,24 @@ def _show_task(storage, task_id):
         ))
         click.echo()
         click.echo(f"统计: pending={pending_count}, accepted={accepted_count}, modified={modified_count}, rejected={rejected_count}")
+        click.echo()
+
+    if task.audit_log:
+        click.echo(click.style("📜 审核操作记录（按时间倒序）", fg="yellow"))
+        audit_table = []
+        for i, entry in enumerate(reversed(task.audit_log), 1):
+            ts = entry.timestamp.replace("T", " ").split(".")[0] if entry.timestamp else "-"
+            op = entry.operator or "-"
+            action_label = {
+                "accept": "接受推荐名", "reject": "拒绝", "change": "改名字",
+                "note": "添加备注", "finalize": "最终确认",
+                "confirm_export": "确认导出", "set_handoff": "设置交接",
+                "status_change": "切换状态", "create_reviews": "创建待审核名单",
+            }.get(entry.action, entry.action)
+            pet = f" 宠物={entry.pet_id[:8]}" if entry.pet_id else ""
+            detail = entry.detail or ""
+            audit_table.append([i, ts, op, action_label, pet, detail])
+        click.echo(tabulate(audit_table, headers=["#", "时间", "操作人", "动作", "对象", "说明"], tablefmt="simple", maxcolwidths=[4, 19, 8, 10, 12, 30]))
         click.echo()
 
     click.echo(click.style("📈 步骤执行情况", fg="yellow"))
