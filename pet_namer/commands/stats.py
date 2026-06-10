@@ -74,15 +74,27 @@ def stats(storage, batch, species, update, top, by_style, by_language,
     click.echo()
     
     if by_style and stats_data.style_distribution:
-        click.echo(click.style("🎨 名字风格分布", fg="yellow"))
+        click.echo(click.style("🎨 名字风格分布（按正式名）", fg="yellow"))
         style_table = _build_distribution_table(stats_data.style_distribution, STYLE_CN)
         click.echo(tabulate(style_table, headers=["风格", "数量", "占比"], tablefmt="simple"))
         click.echo()
     
     if by_language and stats_data.language_distribution:
-        click.echo(click.style("🌍 语言分布", fg="yellow"))
+        click.echo(click.style("🌍 语言分布（按正式名）", fg="yellow"))
         lang_table = _build_distribution_table(stats_data.language_distribution, LANGUAGE_CN)
         click.echo(tabulate(lang_table, headers=["语言", "数量", "占比"], tablefmt="simple"))
+        click.echo()
+    
+    if stats_data.favorite_style_distribution:
+        click.echo(click.style("💖 收藏偏好（按收藏名）", fg="yellow"))
+        fav_style_table = _build_distribution_table(stats_data.favorite_style_distribution, STYLE_CN)
+        click.echo(tabulate(fav_style_table, headers=["风格", "数量", "占比"], tablefmt="simple"))
+        click.echo()
+    
+    if stats_data.favorite_language_distribution:
+        click.echo(click.style("💖 收藏语言偏好（按收藏名）", fg="yellow"))
+        fav_lang_table = _build_distribution_table(stats_data.favorite_language_distribution, LANGUAGE_CN)
+        click.echo(tabulate(fav_lang_table, headers=["语言", "数量", "占比"], tablefmt="simple"))
         click.echo()
     
     if by_species and stats_data.species_distribution:
@@ -98,13 +110,23 @@ def stats(storage, batch, species, update, top, by_style, by_language,
         click.echo()
     
     if stats_data.top_names:
-        click.echo(click.style(f"🏆 最热门名字 TOP {len(stats_data.top_names)}", fg="yellow"))
+        click.echo(click.style(f"🏆 最热门正式名 TOP {len(stats_data.top_names)}", fg="yellow"))
         top_table = []
         for i, (name, count, style, language) in enumerate(stats_data.top_names, 1):
             style_cn = STYLE_CN.get(style, style)
             lang_cn = LANGUAGE_CN.get(language, language)
             top_table.append([i, name, count, style_cn, lang_cn])
         click.echo(tabulate(top_table, headers=["排名", "名字", "使用次数", "风格", "语言"], tablefmt="simple"))
+        click.echo()
+    
+    if stats_data.favorite_top_names:
+        click.echo(click.style(f"💖 最热门收藏名 TOP {len(stats_data.favorite_top_names)}", fg="yellow"))
+        fav_top_table = []
+        for i, (name, count, style, language) in enumerate(stats_data.favorite_top_names, 1):
+            style_cn = STYLE_CN.get(style, style)
+            lang_cn = LANGUAGE_CN.get(language, language)
+            fav_top_table.append([i, name, count, style_cn, lang_cn])
+        click.echo(tabulate(fav_top_table, headers=["排名", "名字", "收藏次数", "风格", "语言"], tablefmt="simple"))
         click.echo()
     
     if records:
@@ -127,6 +149,9 @@ def _compute_stats(storage, pets: List[Pet], name_library: List[NameEntry], top:
     name_counter = Counter()
     style_counter = Counter()
     language_counter = Counter()
+    fav_style_counter = Counter()
+    fav_language_counter = Counter()
+    fav_name_counter = Counter()
     species_counter = Counter()
     batch_counter = Counter()
     
@@ -141,7 +166,10 @@ def _compute_stats(storage, pets: List[Pet], name_library: List[NameEntry], top:
         if pet.batch:
             batch_counter[pet.batch] += 1
         
+        used_names_for_pet = set()
+        
         if pet.selected_name:
+            used_names_for_pet.add(pet.selected_name.lower())
             name_counter[pet.selected_name] += 1
             info = name_info_map.get(pet.selected_name.lower())
             if info:
@@ -149,13 +177,19 @@ def _compute_stats(storage, pets: List[Pet], name_library: List[NameEntry], top:
                 language_counter[info.language] += 1
         
         for name in pet.favorite_names:
+            if name.lower() in used_names_for_pet:
+                continue
+            used_names_for_pet.add(name.lower())
+            fav_name_counter[name] += 1
             info = name_info_map.get(name.lower())
             if info:
-                style_counter[info.style] += 1
-                language_counter[info.language] += 1
+                fav_style_counter[info.style] += 1
+                fav_language_counter[info.language] += 1
     
     stats_data.style_distribution = dict(style_counter)
     stats_data.language_distribution = dict(language_counter)
+    stats_data.favorite_style_distribution = dict(fav_style_counter)
+    stats_data.favorite_language_distribution = dict(fav_language_counter)
     stats_data.species_distribution = dict(species_counter)
     stats_data.batch_distribution = dict(batch_counter)
     stats_data.generation_count = len(storage.load_records())
@@ -167,6 +201,14 @@ def _compute_stats(storage, pets: List[Pet], name_library: List[NameEntry], top:
         language = info.language if info else "unknown"
         top_names.append((name, count, style, language))
     stats_data.top_names = top_names
+    
+    fav_top_names = []
+    for name, count in fav_name_counter.most_common(5):
+        info = name_info_map.get(name.lower())
+        style = info.style if info else "unknown"
+        language = info.language if info else "unknown"
+        fav_top_names.append((name, count, style, language))
+    stats_data.favorite_top_names = fav_top_names
     
     return stats_data
 

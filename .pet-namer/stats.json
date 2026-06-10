@@ -1,12 +1,15 @@
 {
   "total_pets": 10,
-  "named_pets": 5,
+  "named_pets": 10,
   "style_distribution": {
     "cute": 10
   },
   "language_distribution": {
-    "zh": 10
+    "zh": 9,
+    "en": 1
   },
+  "favorite_style_distribution": {},
+  "favorite_language_distribution": {},
   "species_distribution": {
     "cat": 5,
     "dog": 3,
@@ -44,11 +47,42 @@
       "zh"
     ],
     [
+      "樱樱",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "果果",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
       "布丁",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "Fluffy",
+      1,
+      "cute",
+      "en"
+    ],
+    [
+      "乖乖",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "薯条",
       1,
       "cute",
       "zh"
     ]
   ],
-  "generation_count": 1
+  "favorite_top_names": [],
+  "generation_count": 2
 }

@@ -117,9 +117,12 @@ class StatsData:
     named_pets: int = 0
     style_distribution: Dict[str, int] = field(default_factory=dict)
     language_distribution: Dict[str, int] = field(default_factory=dict)
+    favorite_style_distribution: Dict[str, int] = field(default_factory=dict)
+    favorite_language_distribution: Dict[str, int] = field(default_factory=dict)
     species_distribution: Dict[str, int] = field(default_factory=dict)
     batch_distribution: Dict[str, int] = field(default_factory=dict)
     top_names: List[tuple] = field(default_factory=list)
+    favorite_top_names: List[tuple] = field(default_factory=list)
     generation_count: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
@@ -128,9 +131,12 @@ class StatsData:
             "named_pets": self.named_pets,
             "style_distribution": self.style_distribution,
             "language_distribution": self.language_distribution,
+            "favorite_style_distribution": self.favorite_style_distribution,
+            "favorite_language_distribution": self.favorite_language_distribution,
             "species_distribution": self.species_distribution,
             "batch_distribution": self.batch_distribution,
             "top_names": [list(item) for item in self.top_names],
+            "favorite_top_names": [list(item) for item in self.favorite_top_names],
             "generation_count": self.generation_count,
         }
 
@@ -141,8 +147,11 @@ class StatsData:
             named_pets=data.get("named_pets", 0),
             style_distribution=data.get("style_distribution", {}),
             language_distribution=data.get("language_distribution", {}),
+            favorite_style_distribution=data.get("favorite_style_distribution", {}),
+            favorite_language_distribution=data.get("favorite_language_distribution", {}),
             species_distribution=data.get("species_distribution", {}),
             batch_distribution=data.get("batch_distribution", {}),
             top_names=[tuple(item) for item in data.get("top_names", [])],
+            favorite_top_names=[tuple(item) for item in data.get("favorite_top_names", [])],
             generation_count=data.get("generation_count", 0),
         )

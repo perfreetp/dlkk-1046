@@ -3,7 +3,7 @@ import json
 import csv
 from pathlib import Path
 from tabulate import tabulate
-from typing import List
+from typing import List, Dict
 
 from ..models import Pet
 from ..generator import NameGenerator
@@ -34,10 +34,23 @@ GENDER_CN = {
 @click.option("--named-only/--all-pets", default=False, help="只导出名有名字的宠物")
 @click.option("--include-candidates/--no-include-candidates", default=False, help="包含候选名字")
 @click.option("--include-favorites/--no-include-favorites", default=False, help="包含收藏名字")
+@click.option("--group-by-species/--no-group-by-species", default=False, help="按物种分组输出")
+@click.option("--contact-phone", help="联系电话（模板字段）")
+@click.option("--location", help="领养地点（模板字段）")
+@click.option("--event-date", help="活动日期（模板字段，如 2024-07-01）")
+@click.option("--event-name", help="活动名称（模板字段）")
+@click.option("--template", help="模板配置文件路径（YAML/JSON），可一次设置所有模板字段")
 @pass_storage
 def export(storage, fmt, output, pet_ids, batch, species, named_only,
-           include_candidates, include_favorites):
+           include_candidates, include_favorites, group_by_species,
+           contact_phone, location, event_date, event_name, template):
     """导出领养海报名单或数据文件"""
+    
+    template_data = _load_template(template)
+    template_data["contact_phone"] = contact_phone or template_data.get("contact_phone", "")
+    template_data["location"] = location or template_data.get("location", "")
+    template_data["event_date"] = event_date or template_data.get("event_date", "")
+    template_data["event_name"] = event_name or template_data.get("event_name", "")
     
     pets = storage.load_pets()
     
@@ -61,15 +74,15 @@ def export(storage, fmt, output, pet_ids, batch, species, named_only,
         return
     
     if fmt == "poster":
-        content = _generate_poster(pets, include_candidates, include_favorites)
+        content = _generate_poster(pets, include_candidates, include_favorites, group_by_species, template_data)
     elif fmt == "csv":
-        content = _generate_csv(pets, include_candidates, include_favorites)
+        content = _generate_csv(pets, include_candidates, include_favorites, template_data)
     elif fmt == "json":
-        content = _generate_json(pets, include_candidates, include_favorites)
+        content = _generate_json(pets, include_candidates, include_favorites, template_data)
     elif fmt == "excel":
         if not output:
             output = "adoption_list.xlsx"
-        _generate_excel(storage, pets, output, include_candidates, include_favorites)
+        _generate_excel(storage, pets, output, include_candidates, include_favorites, template_data)
         click.echo(click.style(f"\n已导出到 {output}", fg="green"))
         return
     
@@ -82,6 +95,28 @@ def export(storage, fmt, output, pet_ids, batch, species, named_only,
         click.echo(content)
         click.echo()
         click.echo("使用 -o filename 保存到文件")
+
+
+def _load_template(template_path: str = None) -> dict:
+    if not template_path:
+        return {}
+    
+    path = Path(template_path)
+    if not path.exists():
+        raise click.ClickException(f"模板文件不存在: {template_path}")
+    
+    text = path.read_text(encoding="utf-8")
+    
+    if template_path.endswith((".yaml", ".yml")):
+        try:
+            import yaml
+            return yaml.safe_load(text) or {}
+        except ImportError:
+            raise click.ClickException("需要安装 PyYAML 以支持 YAML 模板: pip install pyyaml")
+    elif template_path.endswith(".json"):
+        return json.loads(text)
+    else:
+        raise click.ClickException("仅支持 YAML 和 JSON 格式的模板文件")
 
 
 def _export_list(pets: List[Pet], include_candidates: bool, include_favorites: bool):
@@ -125,33 +160,113 @@ def _export_list(pets: List[Pet], include_candidates: bool, include_favorites: b
     click.echo(f"共 {len(pets)} 只宠物，{sum(1 for p in pets if p.selected_name)} 只已命名")
 
 
-def _generate_poster(pets: List[Pet], include_candidates: bool, include_favorites: bool) -> str:
+def _build_event_header(template_data: dict, width: int = 60) -> List[str]:
     lines = []
+    event_name = template_data.get("event_name", "")
+    event_date = template_data.get("event_date", "")
+    location = template_data.get("location", "")
+    contact_phone = template_data.get("contact_phone", "")
     
-    title = "🐾 待领养宠物名单 🐾"
-    lines.append("=" * 60)
-    lines.append(f"{title:^60}")
-    lines.append("=" * 60)
+    title = f"🐾 {event_name or '待领养宠物名单'} 🐾"
+    lines.append("=" * width)
+    lines.append(f"{title:^{width}}")
+    
+    sub_parts = []
+    if event_date:
+        sub_parts.append(f"📅 {event_date}")
+    if location:
+        sub_parts.append(f"📍 {location}")
+    if contact_phone:
+        sub_parts.append(f"📞 {contact_phone}")
+    
+    if sub_parts:
+        sub_title = "  |  ".join(sub_parts)
+        lines.append(f"{sub_title:^{width}}")
+    
+    lines.append("=" * width)
     lines.append("")
+    return lines
+
+
+def _build_event_footer(template_data: dict, total_count: int, width: int = 60) -> List[str]:
+    lines = []
+    lines.append("=" * width)
+    lines.append(f"共 {total_count} 只萌宠等待温暖的家")
     
-    if len(pets) == 1:
-        lines.append(_generate_single_poster(pets[0], include_candidates, include_favorites))
-    else:
-        for i, pet in enumerate(pets, 1):
-            lines.append(f"【第 {i} 号】")
-            lines.append("-" * 40)
-            lines.append(_generate_single_poster(pet, include_candidates, include_favorites))
-            lines.append("")
+    contact_phone = template_data.get("contact_phone", "")
+    location = template_data.get("location", "")
+    if contact_phone or location:
+        contact_line = "📞 "
+        if contact_phone:
+            contact_line += contact_phone
+        if location:
+            contact_line += f"  |  📍 {location}"
+        lines.append(contact_line)
+    
+    lines.append("💕 领养代替购买，用爱温暖生命 💕")
+    lines.append("=" * width)
+    return lines
+
+
+def _generate_poster(pets: List[Pet], include_candidates: bool, include_favorites: bool,
+                     group_by_species: bool, template_data: dict) -> str:
+    lines = []
+    width = 60
+    lines.extend(_build_event_header(template_data, width))
+    
+    contact_phone = template_data.get("contact_phone", "")
+    contact_msg = f"请联系 {contact_phone}" if contact_phone else "请联系救助站"
+    
+    if group_by_species:
+        species_groups: Dict[str, List[Pet]] = {}
+        for pet in pets:
+            key = pet.species or "unknown"
+            if key not in species_groups:
+                species_groups[key] = []
+            species_groups[key].append(pet)
         
-        lines.append("=" * 60)
-        lines.append(f"共 {len(pets)} 只萌宠等待温暖的家")
-        lines.append("💕 领养代替购买，用爱温暖生命 💕")
-        lines.append("=" * 60)
+        order = ["cat", "dog", "rabbit"]
+        ordered_keys = [k for k in order if k in species_groups] + [k for k in species_groups if k not in order]
+        
+        for sp_key in ordered_keys:
+            sp_pets = species_groups[sp_key]
+            sp_name = SPECIES_CN.get(sp_key, sp_key)
+            emoji = "🐱" if sp_key == "cat" else "🐶" if sp_key == "dog" else "🐰"
+            lines.append(f"{emoji}=== {sp_name}组 ({len(sp_pets)}只) ===")
+            lines.append("")
+            
+            for i, pet in enumerate(sp_pets, 1):
+                lines.append(f"【{sp_name}{i:02d}号】")
+                lines.append("-" * 40)
+                lines.append(_generate_single_poster(pet, include_candidates, include_favorites, contact_msg))
+                lines.append("")
+    else:
+        if len(pets) == 1:
+            lines.append(_generate_single_poster(pets[0], include_candidates, include_favorites, contact_msg))
+        else:
+            for i, pet in enumerate(pets, 1):
+                lines.append(f"【第 {i} 号】")
+                lines.append("-" * 40)
+                lines.append(_generate_single_poster(pet, include_candidates, include_favorites, contact_msg))
+                lines.append("")
     
+    lines.extend(_build_event_footer(template_data, len(pets), width))
     return "\n".join(lines)
 
 
-def _generate_single_poster(pet: Pet, include_candidates: bool, include_favorites: bool) -> str:
+def _is_valid_note(val) -> bool:
+    if not val:
+        return False
+    s = str(val).strip()
+    if not s:
+        return False
+    if s.lower() in ["nan", "none", "null", "-", "无", "空", "n/a", "na"]:
+        return False
+    return True
+
+
+def _generate_single_poster(pet: Pet, include_candidates: bool, include_favorites: bool,
+                            contact_msg: str = "请联系救助站") -> str:
     lines = []
     
     species = SPECIES_CN.get(pet.species, pet.species)
@@ -163,9 +278,9 @@ def _generate_single_poster(pet: Pet, include_candidates: bool, include_favorite
     emoji = "🐱" if pet.species == "cat" else "🐶" if pet.species == "dog" else "🐰"
     
     if pet.selected_name:
-        lines.append(f"{emoji} 名字: {click.style(pet.selected_name, fg='green', bold=True)}")
+        lines.append(f"{emoji} 名字: {pet.selected_name}")
     else:
-        lines.append(f"{emoji} 名字: {click.style('待命名', fg='red')}")
+        lines.append(f"{emoji} 名字: (待命名)")
     
     lines.append(f"   物种: {species}")
     lines.append(f"   性别: {gender}")
@@ -184,20 +299,31 @@ def _generate_single_poster(pet: Pet, include_candidates: bool, include_favorite
         cands = "、".join(pet.candidate_names)
         lines.append(f"   ○ 候选: {cands}")
     
-    if pet.notes:
+    if _is_valid_note(pet.notes):
         lines.append(f"   备注: {pet.notes}")
     
     lines.append("")
-    lines.append("   💕 如果您对我感兴趣，请联系救助站 💕")
+    lines.append(f"   💕 如果您对我感兴趣，{contact_msg} 💕")
     
     return "\n".join(lines)
 
 
-def _generate_csv(pets: List[Pet], include_candidates: bool, include_favorites: bool) -> str:
+def _generate_csv(pets: List[Pet], include_candidates: bool, include_favorites: bool,
+                  template_data: dict) -> str:
     import io
     
     output = io.StringIO()
     writer = csv.writer(output)
+    
+    if template_data:
+        writer.writerow(["活动信息"])
+        for key in ["event_name", "event_date", "location", "contact_phone"]:
+            val = template_data.get(key, "")
+            if val:
+                cn_key = {"event_name": "活动名称", "event_date": "活动日期",
+                          "location": "领养地点", "contact_phone": "联系电话"}.get(key, key)
+                writer.writerow([cn_key, val])
+        writer.writerow([])
     
     headers = ["ID", "物种", "性别", "年龄", "月龄", "毛色", "性格", "批次", "来源", "正式名"]
     if include_favorites:
@@ -225,15 +351,20 @@ def _generate_csv(pets: List[Pet], include_candidates: bool, include_favorites: 
             row.append("、".join(pet.favorite_names))
         if include_candidates:
             row.append("、".join(pet.candidate_names))
-        row.append(pet.notes or "")
+        row.append(pet.notes if _is_valid_note(pet.notes) else "")
         
         writer.writerow(row)
     
     return output.getvalue()
 
 
-def _generate_json(pets: List[Pet], include_candidates: bool, include_favorites: bool) -> str:
-    data = []
+def _generate_json(pets: List[Pet], include_candidates: bool, include_favorites: bool,
+                   template_data: dict) -> str:
+    result = {
+        "event_info": template_data if template_data else {},
+        "total_count": len(pets),
+        "pets": []
+    }
     for pet in pets:
         item = {
             "id": pet.id,
@@ -248,19 +379,20 @@ def _generate_json(pets: List[Pet], include_candidates: bool, include_favorites:
             "batch": pet.batch,
             "source": pet.source,
             "selected_name": pet.selected_name,
-            "notes": pet.notes,
+            "notes": pet.notes if _is_valid_note(pet.notes) else "",
             "created_at": pet.created_at,
         }
         if include_favorites:
             item["favorite_names"] = pet.favorite_names
         if include_candidates:
             item["candidate_names"] = pet.candidate_names
-        data.append(item)
+        result["pets"].append(item)
     
-    return json.dumps(data, ensure_ascii=False, indent=2)
+    return json.dumps(result, ensure_ascii=False, indent=2)
 
 
-def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: bool, include_favorites: bool):
+def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: bool,
+                    include_favorites: bool, template_data: dict):
     import pandas as pd
     
     rows = []
@@ -276,7 +408,7 @@ def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: b
             "批次": pet.batch or "",
             "来源": pet.source or "",
             "正式名": pet.selected_name or "",
-            "备注": pet.notes or "",
+            "备注": pet.notes if _is_valid_note(pet.notes) else "",
         }
         if include_favorites:
             row["收藏名"] = "、".join(pet.favorite_names)
@@ -287,6 +419,18 @@ def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: b
     df = pd.DataFrame(rows)
     
     try:
-        df.to_excel(output, index=False, engine="openpyxl")
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="宠物名单")
+            
+            if template_data:
+                event_rows = []
+                for key in ["event_name", "event_date", "location", "contact_phone"]:
+                    val = template_data.get(key, "")
+                    if val:
+                        cn_key = {"event_name": "活动名称", "event_date": "活动日期",
+                                  "location": "领养地点", "contact_phone": "联系电话"}.get(key, key)
+                        event_rows.append({"项目": cn_key, "内容": val})
+                if event_rows:
+                    pd.DataFrame(event_rows).to_excel(writer, index=False, sheet_name="活动信息")
     except ImportError:
         raise click.ClickException("需要安装 openpyxl: pip install openpyxl")

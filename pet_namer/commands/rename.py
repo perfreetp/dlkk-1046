@@ -74,22 +74,28 @@ def rename(storage, pet_ids, batch, species, from_name, to_name, pattern,
         click.echo("已取消")
         return
     
-    modified_pets = []
+    pet_map = {}
     for pet, name_type, old_name, new_name in replacements:
+        if pet.id not in pet_map:
+            pet_map[pet.id] = pet
+        p = pet_map[pet.id]
         if name_type == "selected":
-            pet.selected_name = new_name
+            p.selected_name = new_name
         if name_type in ["candidate", "both"]:
-            if old_name in pet.candidate_names:
-                pet.candidate_names = [new_name if n == old_name else n for n in pet.candidate_names]
+            if old_name in p.candidate_names:
+                p.candidate_names = [new_name if n == old_name else n for n in p.candidate_names]
         if name_type in ["favorite", "both"]:
-            if old_name in pet.favorite_names:
-                pet.favorite_names = [new_name if n == old_name else n for n in pet.favorite_names]
-        modified_pets.append(pet)
+            if old_name in p.favorite_names:
+                p.favorite_names = [new_name if n == old_name else n for n in p.favorite_names]
     
+    modified_pets = list(pet_map.values())
+    unique_pet_ids = set()
     for pet in modified_pets:
-        storage.update_pet(pet)
+        if pet.id not in unique_pet_ids:
+            unique_pet_ids.add(pet.id)
+            storage.update_pet(pet)
     
-    click.echo(click.style(f"\n成功替换 {len(replacements)} 个名字！", fg="green"))
+    click.echo(click.style(f"\n成功替换 {len(replacements)} 个名字，涉及 {len(modified_pets)} 只宠物！", fg="green"))
     
     if auto_regenerate:
         _regenerate_for_affected(storage, modified_pets, count, style, language)
@@ -236,26 +242,48 @@ def _display_replacements(replacements, dry_run):
 
 
 def _regenerate_for_affected(storage, pets: List[Pet], count: int, style: str, language: str):
-    click.echo(f"\n正在为 {len(pets)} 只宠物重新生成候选名字...")
+    click.echo(click.style(f"\n=== 自动重新生成候选名 ===", fg="cyan", bold=True))
+    click.echo(f"目标宠物数: {len(pets)}")
+    click.echo(f"每只候选数: {count}")
+    click.echo()
     
     name_library = storage.load_names()
     generator = NameGenerator(name_library)
     
     params = GenerationParams(
-        count=count,
+        candidates_per_pet=count,
         style=None if style == "all" else style,
         language=None if language == "all" else language,
         avoid_similar=True,
         exclude_used=True,
     )
     
-    used_names = storage.get_used_names()
+    used_names = set(storage.get_used_names())
+    success_count = 0
+    failed_pets = []
     
-    for pet in pets:
-        candidates = generator.generate_for_pet(pet, params, used_names, count)
-        if candidates:
-            pet.candidate_names = candidates
-            storage.update_pet(pet)
-            click.echo(f"  宠物 {pet.id[:8]}: 生成 {len(candidates)} 个候选名: {', '.join(candidates)}")
+    for i, pet in enumerate(pets, 1):
+        pet_label = f"[{i}/{len(pets)}] {pet.id[:8]} ({pet.species})"
+        try:
+            current_used = list(used_names)
+            candidates = generator.generate_for_pet(pet, params, current_used, count)
+            if candidates:
+                pet.candidate_names = candidates
+                storage.update_pet(pet)
+                used_names.update(candidates)
+                click.echo(f"  ✅ {pet_label}: {', '.join(candidates)}")
+                success_count += 1
+            else:
+                click.echo(f"  ⚠️  {pet_label}: 未找到合适候选名")
+                failed_pets.append(pet.id[:8])
+        except Exception as e:
+            click.echo(f"  ❌ {pet_label}: 生成失败 - {str(e)}")
+            failed_pets.append(pet.id[:8])
     
-    click.echo(click.style("重新生成完成！", fg="green"))
+    click.echo()
+    click.echo(click.style(f"重新生成完成！成功: {success_count}/{len(pets)}", fg="green"))
+    if failed_pets:
+        click.echo(click.style(f"失败/未生成: {', '.join(failed_pets)}", fg="yellow"))
+        click.echo("提示: 可减少 --count 或放宽 --style/--language 后重试")
+    
+    return success_count, failed_pets

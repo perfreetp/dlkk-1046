@@ -27,11 +27,22 @@ from ..cli import pass_storage
 @click.option("--all", "all_pets", is_flag=True, help="为所有未命名宠物生成")
 @click.option("--replay", help="从生成记录ID复现参数")
 @click.option("--interactive/--no-interactive", default=True, help="交互式选择名字")
+@click.option("--diff", "diff_ids", type=str, help="对比两条记录，格式: ID1:ID2")
+@click.option("--list-records/--no-list-records", default=False, help="列出所有生成记录")
 @pass_storage
 def generate(storage, species, gender, age, coat_color, personality, batch,
              min_length, max_length, language, style, forbidden, count,
-             exclude_used, avoid_similar, pet_id, all_pets, replay, interactive):
+             exclude_used, avoid_similar, pet_id, all_pets, replay, interactive,
+             diff_ids, list_records):
     """为宠物生成候选名字"""
+    
+    if list_records:
+        _list_all_records(storage)
+        return
+    
+    if diff_ids:
+        _diff_records(storage, diff_ids)
+        return
     
     params = GenerationParams(
         species=None if species == "all" else species,
@@ -192,3 +203,158 @@ def _display_results(storage, pets, results, generator, interactive):
                         click.echo(click.style(f"已设置正式名: {selected}", fg="green"))
                 except ValueError:
                     click.echo("输入无效，已跳过")
+
+
+PARAM_LABELS = {
+    "species": "物种",
+    "gender": "性别",
+    "age": "年龄",
+    "age_min_months": "最小月龄",
+    "age_max_months": "最大月龄",
+    "coat_color": "毛色",
+    "personality": "性格标签",
+    "batch": "批次",
+    "min_length": "名字最小长度",
+    "max_length": "名字最大长度",
+    "language": "语言",
+    "style": "风格",
+    "forbidden_words": "禁用词",
+    "candidates_per_pet": "每只候选数",
+    "exclude_used": "排除已用名",
+    "avoid_similar": "避免发音相近",
+}
+
+
+def _list_all_records(storage):
+    records = storage.load_records()
+    if not records:
+        click.echo("暂无生成记录")
+        return
+    
+    click.echo(click.style("=== 生成记录列表 ===", fg="cyan", bold=True))
+    
+    table_data = []
+    for i, record in enumerate(reversed(records), 1):
+        ts = record.timestamp.split("T")[0] if "T" in record.timestamp else record.timestamp
+        style = record.params.style or "all"
+        language = record.params.language or "all"
+        table_data.append([
+            i,
+            record.id[:8],
+            ts,
+            len(record.pet_ids),
+            style,
+            language,
+            record.params.batch or "-",
+        ])
+    
+    click.echo(tabulate(
+        table_data,
+        headers=["#", "记录ID", "日期", "宠物数", "风格", "语言", "批次"],
+        tablefmt="simple"
+    ))
+    click.echo()
+    click.echo("使用 `pet-namer generate --diff ID1:ID2` 对比两条记录")
+    click.echo("使用 `pet-namer generate --replay <记录ID>` 复现某次生成")
+
+
+def _diff_records(storage, diff_ids: str):
+    if ":" not in diff_ids:
+        raise click.ClickException("格式错误，请使用 ID1:ID2 格式")
+    
+    id_a, id_b = diff_ids.split(":", 1)
+    
+    record_a = storage.get_record(id_a)
+    record_b = storage.get_record(id_b)
+    
+    if not record_a:
+        raise click.ClickException(f"找不到记录: {id_a}")
+    if not record_b:
+        raise click.ClickException(f"找不到记录: {id_b}")
+    
+    click.echo(click.style("=== 生成记录对比 ===", fg="cyan", bold=True))
+    click.echo()
+    
+    click.echo(click.style("📋 基本信息", fg="yellow"))
+    ts_a = record_a.timestamp.replace("T", " ")
+    ts_b = record_b.timestamp.replace("T", " ")
+    info_table = [
+        ["", "记录A (" + id_a[:8] + ")", "记录B (" + id_b[:8] + ")"],
+        ["生成时间", ts_a, ts_b],
+        ["宠物数量", len(record_a.pet_ids), len(record_b.pet_ids)],
+    ]
+    click.echo(tabulate(info_table, tablefmt="simple", headers="firstrow"))
+    click.echo()
+    
+    click.echo(click.style("⚙️ 参数差异", fg="yellow"))
+    param_a = record_a.params.to_dict()
+    param_b = record_b.params.to_dict()
+    
+    all_keys = set(list(param_a.keys()) + list(param_b.keys()))
+    diff_rows = []
+    
+    for key in sorted(all_keys):
+        val_a = param_a.get(key)
+        val_b = param_b.get(key)
+        label = PARAM_LABELS.get(key, key)
+        
+        if val_a == val_b:
+            continue
+        
+        if isinstance(val_a, list):
+            val_a = ", ".join(str(v) for v in val_a) or "(空)"
+        if isinstance(val_b, list):
+            val_b = ", ".join(str(v) for v in val_b) or "(空)"
+        if val_a is None:
+            val_a = "(未设置)"
+        if val_b is None:
+            val_b = "(未设置)"
+        
+        diff_rows.append([label, str(val_a), str(val_b)])
+    
+    if diff_rows:
+        click.echo(tabulate(diff_rows, headers=["参数", "记录A", "记录B"], tablefmt="simple"))
+    else:
+        click.echo("  两条记录参数完全相同 ✅")
+    click.echo()
+    
+    click.echo(click.style("🐾 宠物候选名变化", fg="yellow"))
+    pets = storage.load_pets()
+    pet_map = {p.id: p for p in pets}
+    
+    all_pet_ids = list(dict.fromkeys(record_a.pet_ids + record_b.pet_ids))
+    
+    name_rows = []
+    for pid in all_pet_ids:
+        names_a = record_a.generated_names.get(pid, [])
+        names_b = record_b.generated_names.get(pid, [])
+        
+        set_a = set(names_a)
+        set_b = set(names_b)
+        
+        common = set_a & set_b
+        only_a = set_a - set_b
+        only_b = set_b - set_a
+        
+        pet = pet_map.get(pid)
+        pet_label = f"{pid[:8]}"
+        if pet:
+            pet_label += f" ({pet.species})"
+            if pet.selected_name:
+                pet_label += f" [{pet.selected_name}]"
+        
+        common_str = ", ".join(sorted(common)) if common else "-"
+        only_a_str = ", ".join(sorted(only_a)) if only_a else "-"
+        only_b_str = ", ".join(sorted(only_b)) if only_b else "-"
+        
+        name_rows.append([pet_label, common_str, only_a_str, only_b_str])
+    
+    click.echo(tabulate(
+        name_rows,
+        headers=["宠物", "相同名字", "仅A有", "仅B有"],
+        tablefmt="simple"
+    ))
+    click.echo()
+    
+    if not name_rows:
+        click.echo("  没有共同的宠物记录")

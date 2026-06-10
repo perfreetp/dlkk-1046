@@ -1,7 +1,7 @@
 [
   {
-    "id": "c7c8d2b5-237f-4d10-b4e2-5f54a2276e31",
-    "timestamp": "2026-06-10T19:28:45.445902",
+    "id": "0eea681c9a36",
+    "timestamp": "2026-06-10T20:19:52.135214",
     "params": {
       "species": null,
       "gender": null,
@@ -21,67 +21,112 @@
       "avoid_similar": true
     },
     "pet_ids": [
-      "e7cd38a6-b23f-4e5d-90e3-261c4dc45bb6",
-      "259470f4-83f8-4736-89fa-7feee5504652",
-      "8face5ea-5947-4868-9ed1-4fa7376ade04",
-      "fc0ed922-ad0d-473f-b343-f9663238a2a2",
-      "3fc36c3c-5c60-4c9b-8ce9-2c2e70ca57aa",
-      "d672e3cd-7c0a-4bb5-87d7-f83f73cf3010",
-      "9b155ccb-2b07-470e-b1ae-c6f20a40a4b0",
-      "581e66f4-4e2c-4f0f-816c-399bfe2e7bc4",
-      "b99d3e9b-bbdf-49f2-b1ee-37c327077506",
-      "b01d2433-ded3-409f-8714-358c3f2ec5f9"
+      "5098d12c",
+      "a0bdce3f",
+      "7c36b963",
+      "91f037e7",
+      "4a869302",
+      "7364f6dc",
+      "8d13efa2",
+      "77907255",
+      "b43e0881",
+      "53e58b9f"
     ],
     "generated_names": {
-      "e7cd38a6-b23f-4e5d-90e3-261c4dc45bb6": [
+      "5098d12c": [
         "奶茶",
         "棉花糖",
         "糖糖"
       ],
-      "259470f4-83f8-4736-89fa-7feee5504652": [
+      "a0bdce3f": [
         "可乐",
         "汉堡",
         "小暖男"
       ],
-      "8face5ea-5947-4868-9ed1-4fa7376ade04": [
+      "7c36b963": [
         "甜甜",
         "桃桃",
         "蜜蜜"
       ],
-      "fc0ed922-ad0d-473f-b343-f9663238a2a2": [
+      "91f037e7": [
         "团子",
         "雪球",
         "毛毛"
       ],
-      "3fc36c3c-5c60-4c9b-8ce9-2c2e70ca57aa": [
+      "4a869302": [
         "樱樱",
         "莉莉",
         "茉莉"
       ],
-      "d672e3cd-7c0a-4bb5-87d7-f83f73cf3010": [
+      "7364f6dc": [
         "果果",
         "跳跳",
         "柠柠"
       ],
-      "9b155ccb-2b07-470e-b1ae-c6f20a40a4b0": [
+      "8d13efa2": [
         "布丁",
         "汤圆",
         "云朵"
       ],
-      "581e66f4-4e2c-4f0f-816c-399bfe2e7bc4": [
+      "77907255": [
         "豆豆",
         "宝宝",
         "Fluffy"
       ],
-      "b99d3e9b-bbdf-49f2-b1ee-37c327077506": [
+      "b43e0881": [
         "黑武士",
         "山水",
         "乖乖"
       ],
-      "b01d2433-ded3-409f-8714-358c3f2ec5f9": [
+      "53e58b9f": [
         "薯条",
         "玫玫",
         "欢欢"
+      ]
+    },
+    "selected_names": {}
+  },
+  {
+    "id": "1d298ebf-76ac-4b8a-a852-62ce52c1722d",
+    "timestamp": "2026-06-10T20:30:25.056855",
+    "params": {
+      "species": null,
+      "gender": null,
+      "age": null,
+      "age_min_months": null,
+      "age_max_months": null,
+      "coat_color": null,
+      "personality": [],
+      "batch": null,
+      "min_length": null,
+      "max_length": null,
+      "language": "zh",
+      "style": "literary",
+      "forbidden_words": [],
+      "candidates_per_pet": 3,
+      "exclude_used": true,
+      "avoid_similar": true
+    },
+    "pet_ids": [
+      "5098d12c",
+      "a0bdce3f",
+      "7c36b963"
+    ],
+    "generated_names": {
+      "5098d12c": [
+        "云朵",
+        "明月",
+        "兰兰"
+      ],
+      "a0bdce3f": [
+        "山水",
+        "墨墨",
+        "星辰"
+      ],
+      "7c36b963": [
+        "梅梅",
+        "雅雅",
+        "菊菊"
       ]
     },
     "selected_names": {}
