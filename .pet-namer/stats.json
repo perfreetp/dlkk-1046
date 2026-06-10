@@ -1,0 +1,54 @@
+{
+  "total_pets": 10,
+  "named_pets": 5,
+  "style_distribution": {
+    "cute": 10
+  },
+  "language_distribution": {
+    "zh": 10
+  },
+  "species_distribution": {
+    "cat": 5,
+    "dog": 3,
+    "rabbit": 2
+  },
+  "batch_distribution": {
+    "2024-06-A": 5,
+    "2024-05-B": 3,
+    "2024-06-B": 1,
+    "2024-04-C": 1
+  },
+  "top_names": [
+    [
+      "奶茶",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "可乐",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "甜甜",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "团子",
+      1,
+      "cute",
+      "zh"
+    ],
+    [
+      "布丁",
+      1,
+      "cute",
+      "zh"
+    ]
+  ],
+  "generation_count": 1
+}

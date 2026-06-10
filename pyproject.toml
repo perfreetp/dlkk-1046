@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pet-namer"
+version = "1.0.0"
+description = "宠物起名命令行工具 - 批量生成待领养动物名字"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Pet Namer Team" }]
+license = { text = "MIT" }
+dependencies = [
+    "click>=8.0.0",
+    "pandas>=1.3.0",
+    "openpyxl>=3.0.0",
+    "pyyaml>=6.0",
+    "jellyfish>=0.9.0",
+    "tabulate>=0.8.0",
+]
+
+[project.scripts]
+pet-namer = "pet_namer.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pet_namer*"]
+
+[tool.setuptools.package-data]
+pet_namer = ["data/*.json"]

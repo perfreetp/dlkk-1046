@@ -1,0 +1,242 @@
+[
+  {
+    "id": "e7cd38a6-b23f-4e5d-90e3-261c4dc45bb6",
+    "species": "cat",
+    "gender": "female",
+    "age": "幼年",
+    "age_months": 3,
+    "coat_color": "橘色",
+    "personality": [
+      "活泼",
+      "亲人"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": "奶茶",
+    "candidate_names": [
+      "奶茶",
+      "棉花糖",
+      "糖糖"
+    ],
+    "favorite_names": [
+      "奶茶"
+    ],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.340472"
+  },
+  {
+    "id": "259470f4-83f8-4736-89fa-7feee5504652",
+    "species": "cat",
+    "gender": "male",
+    "age": "幼年",
+    "age_months": 4,
+    "coat_color": "黑色",
+    "personality": [
+      "安静",
+      "害羞"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": "可乐",
+    "candidate_names": [
+      "可乐",
+      "汉堡",
+      "小暖男"
+    ],
+    "favorite_names": [
+      "可乐"
+    ],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.340711"
+  },
+  {
+    "id": "8face5ea-5947-4868-9ed1-4fa7376ade04",
+    "species": "cat",
+    "gender": "female",
+    "age": "成年",
+    "age_months": 24,
+    "coat_color": "白色",
+    "personality": [
+      "温柔",
+      "黏人"
+    ],
+    "batch": "2024-05-B",
+    "source": "社区投喂",
+    "selected_name": "甜甜",
+    "candidate_names": [
+      "甜甜",
+      "桃桃",
+      "蜜蜜"
+    ],
+    "favorite_names": [
+      "甜甜"
+    ],
+    "notes": "已绝育",
+    "created_at": "2026-06-10T19:28:13.340891"
+  },
+  {
+    "id": "fc0ed922-ad0d-473f-b343-f9663238a2a2",
+    "species": "dog",
+    "gender": "male",
+    "age": "青年",
+    "age_months": 12,
+    "coat_color": "黄色",
+    "personality": [
+      "活泼",
+      "忠诚"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": "团子",
+    "candidate_names": [
+      "团子",
+      "雪球",
+      "毛毛"
+    ],
+    "favorite_names": [
+      "团子"
+    ],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.341054"
+  },
+  {
+    "id": "3fc36c3c-5c60-4c9b-8ce9-2c2e70ca57aa",
+    "species": "dog",
+    "gender": "female",
+    "age": "成年",
+    "age_months": 36,
+    "coat_color": "棕色",
+    "personality": [
+      "温顺",
+      "聪明"
+    ],
+    "batch": "2024-05-B",
+    "source": "原主人弃养",
+    "selected_name": null,
+    "candidate_names": [
+      "樱樱",
+      "莉莉",
+      "茉莉"
+    ],
+    "favorite_names": [],
+    "notes": "已打疫苗",
+    "created_at": "2026-06-10T19:28:13.341194"
+  },
+  {
+    "id": "d672e3cd-7c0a-4bb5-87d7-f83f73cf3010",
+    "species": "dog",
+    "gender": "male",
+    "age": "幼年",
+    "age_months": 6,
+    "coat_color": "黑白",
+    "personality": [
+      "顽皮",
+      "energetic"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "果果",
+      "跳跳",
+      "柠柠"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.341358"
+  },
+  {
+    "id": "9b155ccb-2b07-470e-b1ae-c6f20a40a4b0",
+    "species": "rabbit",
+    "gender": "female",
+    "age": "幼年",
+    "age_months": 2,
+    "coat_color": "白色",
+    "personality": [
+      "胆小",
+      "gentle"
+    ],
+    "batch": "2024-06-B",
+    "source": "宠物医院",
+    "selected_name": "布丁",
+    "candidate_names": [
+      "布丁",
+      "汤圆",
+      "云朵"
+    ],
+    "favorite_names": [
+      "布丁"
+    ],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.341514"
+  },
+  {
+    "id": "581e66f4-4e2c-4f0f-816c-399bfe2e7bc4",
+    "species": "rabbit",
+    "gender": "male",
+    "age": "青年",
+    "age_months": 8,
+    "coat_color": "灰色",
+    "personality": [
+      "安静",
+      "independent"
+    ],
+    "batch": "2024-05-B",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "豆豆",
+      "宝宝",
+      "Fluffy"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.341662"
+  },
+  {
+    "id": "b99d3e9b-bbdf-49f2-b1ee-37c327077506",
+    "species": "cat",
+    "gender": "male",
+    "age": "成年",
+    "age_months": 48,
+    "coat_color": "灰色",
+    "personality": [
+      "沉稳",
+      "calm"
+    ],
+    "batch": "2024-04-C",
+    "source": "社区投喂",
+    "selected_name": null,
+    "candidate_names": [
+      "黑武士",
+      "山水",
+      "乖乖"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T19:28:13.341812"
+  },
+  {
+    "id": "b01d2433-ded3-409f-8714-358c3f2ec5f9",
+    "species": "cat",
+    "gender": "female",
+    "age": "幼年",
+    "age_months": 5,
+    "coat_color": "三花",
+    "personality": [
+      "活泼",
+      "playful"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "薯条",
+      "玫玫",
+      "欢欢"
+    ],
+    "favorite_names": [],
+    "notes": "小名叫花花",
+    "created_at": "2026-06-10T19:28:13.341942"
+  }
+]
