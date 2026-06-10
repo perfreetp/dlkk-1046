@@ -1,0 +1,68 @@
+[
+  {
+    "id": "0afb0317e2a3",
+    "timestamp": "2026-06-10T21:01:40.386479",
+    "status": "completed",
+    "steps": [
+      {
+        "name": "import",
+        "started_at": "2026-06-10T21:01:40.390727",
+        "finished_at": "2026-06-10T21:01:40.401272",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "from_file": "examples/sample_pets.csv"
+        }
+      },
+      {
+        "name": "generate",
+        "started_at": "2026-06-10T21:01:40.401926",
+        "finished_at": "2026-06-10T21:01:40.419222",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "generation_record": "ed3b93b2ff6e"
+        }
+      },
+      {
+        "name": "recommend",
+        "started_at": "2026-06-10T21:01:40.419959",
+        "finished_at": "2026-06-10T21:01:40.429309",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "strategy": "cute_first",
+          "auto_select": true
+        }
+      },
+      {
+        "name": "export",
+        "started_at": "2026-06-10T21:01:40.430283",
+        "finished_at": "2026-06-10T21:01:40.431143",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "format": "csv",
+          "output_file": "adoption_list_20260610_210140.csv"
+        }
+      }
+    ],
+    "params": {
+      "import_file": "examples/sample_pets.csv",
+      "batch_name": "TEST-001",
+      "count": 3,
+      "style": "cute",
+      "language": "zh",
+      "species": "all",
+      "recommend": "cute_first",
+      "auto_select": true,
+      "export_format": "csv"
+    },
+    "export_file": "adoption_list_20260610_210140.csv",
+    "generation_record_id": "ed3b93b2ff6e"
+  }
+]

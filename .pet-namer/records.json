@@ -1,7 +1,7 @@
 [
   {
-    "id": "0eea681c9a36",
-    "timestamp": "2026-06-10T20:19:52.135214",
+    "id": "ed3b93b2ff6e",
+    "timestamp": "2026-06-10T21:01:40.417867",
     "params": {
       "species": null,
       "gender": null,
@@ -21,64 +21,64 @@
       "avoid_similar": true
     },
     "pet_ids": [
-      "5098d12c",
-      "a0bdce3f",
-      "7c36b963",
-      "91f037e7",
-      "4a869302",
-      "7364f6dc",
-      "8d13efa2",
-      "77907255",
-      "b43e0881",
-      "53e58b9f"
+      "27418626",
+      "faff1bd8",
+      "008fd126",
+      "774cb9f1",
+      "625711cf",
+      "7000dabd",
+      "540d05a6",
+      "d1435eb7",
+      "050a34b8",
+      "3161e791"
     ],
     "generated_names": {
-      "5098d12c": [
+      "27418626": [
         "奶茶",
         "棉花糖",
         "糖糖"
       ],
-      "a0bdce3f": [
+      "faff1bd8": [
         "可乐",
         "汉堡",
         "小暖男"
       ],
-      "7c36b963": [
+      "008fd126": [
         "甜甜",
         "桃桃",
         "蜜蜜"
       ],
-      "91f037e7": [
+      "774cb9f1": [
         "团子",
         "雪球",
         "毛毛"
       ],
-      "4a869302": [
+      "625711cf": [
         "樱樱",
         "莉莉",
         "茉莉"
       ],
-      "7364f6dc": [
+      "7000dabd": [
         "果果",
         "跳跳",
         "柠柠"
       ],
-      "8d13efa2": [
+      "540d05a6": [
         "布丁",
         "汤圆",
         "云朵"
       ],
-      "77907255": [
+      "d1435eb7": [
         "豆豆",
         "宝宝",
         "Fluffy"
       ],
-      "b43e0881": [
+      "050a34b8": [
         "黑武士",
         "山水",
         "乖乖"
       ],
-      "53e58b9f": [
+      "3161e791": [
         "薯条",
         "玫玫",
         "欢欢"
@@ -87,8 +87,8 @@
     "selected_names": {}
   },
   {
-    "id": "1d298ebf-76ac-4b8a-a852-62ce52c1722d",
-    "timestamp": "2026-06-10T20:30:25.056855",
+    "id": "d948d39e-ec11-4050-92eb-99640421f5f4",
+    "timestamp": "2026-06-10T21:03:07.061158",
     "params": {
       "species": null,
       "gender": null,
@@ -100,33 +100,33 @@
       "batch": null,
       "min_length": null,
       "max_length": null,
-      "language": "zh",
-      "style": "literary",
+      "language": "en",
+      "style": "western",
       "forbidden_words": [],
       "candidates_per_pet": 3,
       "exclude_used": true,
       "avoid_similar": true
     },
     "pet_ids": [
-      "5098d12c",
-      "a0bdce3f",
-      "7c36b963"
+      "27418626",
+      "008fd126",
+      "3161e791"
     ],
     "generated_names": {
-      "5098d12c": [
-        "云朵",
-        "明月",
-        "兰兰"
+      "27418626": [
+        "Bella",
+        "Angel",
+        "Lucy"
       ],
-      "a0bdce3f": [
-        "山水",
-        "墨墨",
-        "星辰"
+      "008fd126": [
+        "Daisy",
+        "Molly",
+        "Princess"
       ],
-      "7c36b963": [
-        "梅梅",
-        "雅雅",
-        "菊菊"
+      "3161e791": [
+        "Coco",
+        "Snowball",
+        "Peanut"
       ]
     },
     "selected_names": {}

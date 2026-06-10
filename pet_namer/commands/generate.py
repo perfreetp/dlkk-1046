@@ -1,5 +1,7 @@
 import click
+import json
 import uuid
+from pathlib import Path
 from tabulate import tabulate
 from typing import List
 
@@ -28,20 +30,21 @@ from ..cli import pass_storage
 @click.option("--replay", help="从生成记录ID复现参数")
 @click.option("--interactive/--no-interactive", default=True, help="交互式选择名字")
 @click.option("--diff", "diff_ids", type=str, help="对比两条记录，格式: ID1:ID2")
+@click.option("--diff-output", type=click.Path(), help="导出对比报告文件，后缀为 .txt 或 .json")
 @click.option("--list-records/--no-list-records", default=False, help="列出所有生成记录")
 @pass_storage
 def generate(storage, species, gender, age, coat_color, personality, batch,
              min_length, max_length, language, style, forbidden, count,
              exclude_used, avoid_similar, pet_id, all_pets, replay, interactive,
-             diff_ids, list_records):
+             diff_ids, diff_output, list_records):
     """为宠物生成候选名字"""
-    
+
     if list_records:
         _list_all_records(storage)
         return
-    
+
     if diff_ids:
-        _diff_records(storage, diff_ids)
+        _diff_records(storage, diff_ids, diff_output)
         return
     
     params = GenerationParams(
@@ -258,103 +261,184 @@ def _list_all_records(storage):
     click.echo("使用 `pet-namer generate --replay <记录ID>` 复现某次生成")
 
 
-def _diff_records(storage, diff_ids: str):
+def _diff_records(storage, diff_ids: str, output_path: str = None):
     if ":" not in diff_ids:
         raise click.ClickException("格式错误，请使用 ID1:ID2 格式")
-    
+
     id_a, id_b = diff_ids.split(":", 1)
-    
+
     record_a = storage.get_record(id_a)
     record_b = storage.get_record(id_b)
-    
+
     if not record_a:
         raise click.ClickException(f"找不到记录: {id_a}")
     if not record_b:
         raise click.ClickException(f"找不到记录: {id_b}")
-    
-    click.echo(click.style("=== 生成记录对比 ===", fg="cyan", bold=True))
-    click.echo()
-    
-    click.echo(click.style("📋 基本信息", fg="yellow"))
+
     ts_a = record_a.timestamp.replace("T", " ")
     ts_b = record_b.timestamp.replace("T", " ")
+    info_data = {
+        "record_a_id": record_a.id,
+        "record_b_id": record_b.id,
+        "record_a_timestamp": ts_a,
+        "record_b_timestamp": ts_b,
+        "record_a_pet_count": len(record_a.pet_ids),
+        "record_b_pet_count": len(record_b.pet_ids),
+    }
+
+    param_a = record_a.params.to_dict()
+    param_b = record_b.params.to_dict()
+    all_keys = set(list(param_a.keys()) + list(param_b.keys()))
+    param_diffs = []
+
+    for key in sorted(all_keys):
+        val_a = param_a.get(key)
+        val_b = param_b.get(key)
+        label = PARAM_LABELS.get(key, key)
+
+        if val_a == val_b:
+            continue
+
+        def _fmt_val(v):
+            if isinstance(v, list):
+                return ", ".join(str(x) for x in v) or "(空)"
+            if v is None:
+                return "(未设置)"
+            return str(v)
+
+        param_diffs.append({
+            "param": label,
+            "param_key": key,
+            "record_a": _fmt_val(val_a),
+            "record_b": _fmt_val(val_b),
+        })
+
+    pets = storage.load_pets()
+    pet_map = {p.id: p for p in pets}
+    all_pet_ids = list(dict.fromkeys(record_a.pet_ids + record_b.pet_ids))
+    pet_changes = []
+
+    for pid in all_pet_ids:
+        names_a = record_a.generated_names.get(pid, [])
+        names_b = record_b.generated_names.get(pid, [])
+        set_a = set(names_a)
+        set_b = set(names_b)
+        common = sorted(set_a & set_b)
+        only_a = sorted(set_a - set_b)
+        only_b = sorted(set_b - set_a)
+
+        pet = pet_map.get(pid)
+        pet_species = pet.species if pet else None
+        pet_selected = pet.selected_name if pet else None
+
+        pet_changes.append({
+            "pet_id": pid,
+            "pet_id_short": pid[:8],
+            "species": pet_species,
+            "selected_name": pet_selected,
+            "names_a": names_a,
+            "names_b": names_b,
+            "common": common,
+            "only_a": only_a,
+            "only_b": only_b,
+        })
+
+    click.echo(click.style("=== 生成记录对比 ===", fg="cyan", bold=True))
+    click.echo()
+
+    click.echo(click.style("📋 基本信息", fg="yellow"))
     info_table = [
-        ["", "记录A (" + id_a[:8] + ")", "记录B (" + id_b[:8] + ")"],
+        ["", f"记录A ({id_a[:8]})", f"记录B ({id_b[:8]})"],
         ["生成时间", ts_a, ts_b],
         ["宠物数量", len(record_a.pet_ids), len(record_b.pet_ids)],
     ]
     click.echo(tabulate(info_table, tablefmt="simple", headers="firstrow"))
     click.echo()
-    
+
     click.echo(click.style("⚙️ 参数差异", fg="yellow"))
-    param_a = record_a.params.to_dict()
-    param_b = record_b.params.to_dict()
-    
-    all_keys = set(list(param_a.keys()) + list(param_b.keys()))
-    diff_rows = []
-    
-    for key in sorted(all_keys):
-        val_a = param_a.get(key)
-        val_b = param_b.get(key)
-        label = PARAM_LABELS.get(key, key)
-        
-        if val_a == val_b:
-            continue
-        
-        if isinstance(val_a, list):
-            val_a = ", ".join(str(v) for v in val_a) or "(空)"
-        if isinstance(val_b, list):
-            val_b = ", ".join(str(v) for v in val_b) or "(空)"
-        if val_a is None:
-            val_a = "(未设置)"
-        if val_b is None:
-            val_b = "(未设置)"
-        
-        diff_rows.append([label, str(val_a), str(val_b)])
-    
-    if diff_rows:
-        click.echo(tabulate(diff_rows, headers=["参数", "记录A", "记录B"], tablefmt="simple"))
+    if param_diffs:
+        rows = [[d["param"], d["record_a"], d["record_b"]] for d in param_diffs]
+        click.echo(tabulate(rows, headers=["参数", "记录A", "记录B"], tablefmt="simple"))
     else:
         click.echo("  两条记录参数完全相同 ✅")
     click.echo()
-    
+
     click.echo(click.style("🐾 宠物候选名变化", fg="yellow"))
-    pets = storage.load_pets()
-    pet_map = {p.id: p for p in pets}
-    
-    all_pet_ids = list(dict.fromkeys(record_a.pet_ids + record_b.pet_ids))
-    
-    name_rows = []
-    for pid in all_pet_ids:
-        names_a = record_a.generated_names.get(pid, [])
-        names_b = record_b.generated_names.get(pid, [])
-        
-        set_a = set(names_a)
-        set_b = set(names_b)
-        
-        common = set_a & set_b
-        only_a = set_a - set_b
-        only_b = set_b - set_a
-        
-        pet = pet_map.get(pid)
-        pet_label = f"{pid[:8]}"
-        if pet:
-            pet_label += f" ({pet.species})"
-            if pet.selected_name:
-                pet_label += f" [{pet.selected_name}]"
-        
-        common_str = ", ".join(sorted(common)) if common else "-"
-        only_a_str = ", ".join(sorted(only_a)) if only_a else "-"
-        only_b_str = ", ".join(sorted(only_b)) if only_b else "-"
-        
-        name_rows.append([pet_label, common_str, only_a_str, only_b_str])
-    
-    click.echo(tabulate(
-        name_rows,
-        headers=["宠物", "相同名字", "仅A有", "仅B有"],
-        tablefmt="simple"
-    ))
-    click.echo()
-    
-    if not name_rows:
+    if pet_changes:
+        rows = []
+        for c in pet_changes:
+            label = c["pet_id_short"]
+            if c["species"]:
+                label += f" ({c['species']})"
+            if c["selected_name"]:
+                label += f" [{c['selected_name']}]"
+            rows.append([
+                label,
+                ", ".join(c["common"]) if c["common"] else "-",
+                ", ".join(c["only_a"]) if c["only_a"] else "-",
+                ", ".join(c["only_b"]) if c["only_b"] else "-",
+            ])
+        click.echo(tabulate(rows, headers=["宠物", "相同名字", "仅A有", "仅B有"], tablefmt="simple"))
+    else:
         click.echo("  没有共同的宠物记录")
+    click.echo()
+
+    if output_path:
+        _write_diff_report(output_path, info_data, param_diffs, pet_changes)
+        click.echo(click.style(f"✅ 对比报告已导出到: {output_path}", fg="green"))
+
+
+def _write_diff_report(output_path: str, info_data: dict, param_diffs: list, pet_changes: list):
+    path = Path(output_path)
+    suffix = path.suffix.lower()
+
+    if suffix == ".json":
+        report = {
+            "report_type": "generation_diff",
+            "basic_info": info_data,
+            "param_diffs": param_diffs,
+            "pet_changes": pet_changes,
+        }
+        path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        lines = []
+        lines.append("=" * 60)
+        lines.append("生成记录对比报告")
+        lines.append("=" * 60)
+        lines.append("")
+
+        lines.append("【基本信息】")
+        lines.append(f"记录A: {info_data['record_a_id']}  ({info_data['record_a_timestamp']})")
+        lines.append(f"记录B: {info_data['record_b_id']}  ({info_data['record_b_timestamp']})")
+        lines.append(f"宠物数量: A={info_data['record_a_pet_count']}, B={info_data['record_b_pet_count']}")
+        lines.append("")
+
+        lines.append("【参数差异】")
+        if param_diffs:
+            for d in param_diffs:
+                lines.append(f"  * {d['param']}:")
+                lines.append(f"      记录A: {d['record_a']}")
+                lines.append(f"      记录B: {d['record_b']}")
+        else:
+            lines.append("  两条记录参数完全相同")
+        lines.append("")
+
+        lines.append("【宠物候选名变化】")
+        for c in pet_changes:
+            label = c["pet_id_short"]
+            if c["species"]:
+                label += f" ({c['species']})"
+            if c["selected_name"]:
+                label += f" 正式名:[{c['selected_name']}]"
+            lines.append(f"  - {label}")
+            if c["common"]:
+                lines.append(f"      相同名字: {', '.join(c['common'])}")
+            if c["only_a"]:
+                lines.append(f"      仅A有:   {', '.join(c['only_a'])}")
+            if c["only_b"]:
+                lines.append(f"      仅B有:   {', '.join(c['only_b'])}")
+            if not c["common"] and not c["only_a"] and not c["only_b"]:
+                lines.append("      (无候选名)")
+        lines.append("")
+
+        path.write_text("\n".join(lines), encoding="utf-8")

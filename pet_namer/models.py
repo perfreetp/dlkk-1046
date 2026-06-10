@@ -155,3 +155,71 @@ class StatsData:
             favorite_top_names=[tuple(item) for item in data.get("favorite_top_names", [])],
             generation_count=data.get("generation_count", 0),
         )
+
+
+@dataclass
+class BatchTaskStep:
+    name: str
+    started_at: str
+    finished_at: Optional[str] = None
+    total_count: int = 0
+    success_count: int = 0
+    failed_ids: List[str] = field(default_factory=list)
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
+            "total_count": self.total_count,
+            "success_count": self.success_count,
+            "failed_ids": self.failed_ids,
+            "extra": self.extra,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "BatchTaskStep":
+        return cls(
+            name=data["name"],
+            started_at=data["started_at"],
+            finished_at=data.get("finished_at"),
+            total_count=data.get("total_count", 0),
+            success_count=data.get("success_count", 0),
+            failed_ids=data.get("failed_ids", []),
+            extra=data.get("extra", {}),
+        )
+
+
+@dataclass
+class BatchTaskRecord:
+    id: str
+    timestamp: str
+    status: str = "running"
+    steps: List[BatchTaskStep] = field(default_factory=list)
+    params: Dict[str, Any] = field(default_factory=dict)
+    export_file: Optional[str] = None
+    generation_record_id: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "status": self.status,
+            "steps": [s.to_dict() for s in self.steps],
+            "params": self.params,
+            "export_file": self.export_file,
+            "generation_record_id": self.generation_record_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "BatchTaskRecord":
+        return cls(
+            id=data["id"],
+            timestamp=data["timestamp"],
+            status=data.get("status", "unknown"),
+            steps=[BatchTaskStep.from_dict(s) for s in data.get("steps", [])],
+            params=data.get("params", {}),
+            export_file=data.get("export_file"),
+            generation_record_id=data.get("generation_record_id"),
+        )

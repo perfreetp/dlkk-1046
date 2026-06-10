@@ -2,7 +2,7 @@ import json
 import os
 from typing import List, Dict, Optional
 from pathlib import Path
-from .models import Pet, NameEntry, GenerationRecord, StatsData
+from .models import Pet, NameEntry, GenerationRecord, StatsData, BatchTaskRecord
 
 
 class Storage:
@@ -15,11 +15,12 @@ class Storage:
         self.records_file = self.data_dir / "records.json"
         self.stats_file = self.data_dir / "stats.json"
         self.config_file = self.data_dir / "config.json"
+        self.tasks_file = self.data_dir / "tasks.json"
 
         self._init_files()
 
     def _init_files(self):
-        for file in [self.pets_file, self.names_file, self.records_file]:
+        for file in [self.pets_file, self.names_file, self.records_file, self.tasks_file]:
             if not file.exists():
                 file.write_text(json.dumps([], ensure_ascii=False, indent=2), encoding="utf-8")
         if not self.stats_file.exists():
@@ -152,3 +153,39 @@ class Storage:
                 used.append(p.selected_name)
             used.extend(p.favorite_names)
         return list(set(used))
+
+    def load_tasks(self) -> List[BatchTaskRecord]:
+        content = self._read_text(self.tasks_file)
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            data = []
+        return [BatchTaskRecord.from_dict(item) for item in data]
+
+    def save_tasks(self, tasks: List[BatchTaskRecord]):
+        self.tasks_file.write_text(
+            json.dumps([t.to_dict() for t in tasks], ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
+
+    def add_task(self, task: BatchTaskRecord) -> BatchTaskRecord:
+        tasks = self.load_tasks()
+        tasks.append(task)
+        self.save_tasks(tasks)
+        return task
+
+    def update_task(self, task: BatchTaskRecord) -> Optional[BatchTaskRecord]:
+        tasks = self.load_tasks()
+        for i, t in enumerate(tasks):
+            if t.id == task.id:
+                tasks[i] = task
+                self.save_tasks(tasks)
+                return task
+        return None
+
+    def get_task(self, task_id: str) -> Optional[BatchTaskRecord]:
+        tasks = self.load_tasks()
+        for t in tasks:
+            if t.id == task_id or t.id.startswith(task_id):
+                return t
+        return None

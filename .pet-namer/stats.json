@@ -1,88 +1,13 @@
 {
-  "total_pets": 10,
+  "total_pets": 0,
   "named_pets": 10,
-  "style_distribution": {
-    "cute": 10
-  },
-  "language_distribution": {
-    "zh": 9,
-    "en": 1
-  },
+  "style_distribution": {},
+  "language_distribution": {},
   "favorite_style_distribution": {},
   "favorite_language_distribution": {},
-  "species_distribution": {
-    "cat": 5,
-    "dog": 3,
-    "rabbit": 2
-  },
-  "batch_distribution": {
-    "2024-06-A": 5,
-    "2024-05-B": 3,
-    "2024-06-B": 1,
-    "2024-04-C": 1
-  },
-  "top_names": [
-    [
-      "奶茶",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "可乐",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "甜甜",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "团子",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "樱樱",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "果果",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "布丁",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "Fluffy",
-      1,
-      "cute",
-      "en"
-    ],
-    [
-      "乖乖",
-      1,
-      "cute",
-      "zh"
-    ],
-    [
-      "薯条",
-      1,
-      "cute",
-      "zh"
-    ]
-  ],
+  "species_distribution": {},
+  "batch_distribution": {},
+  "top_names": [],
   "favorite_top_names": [],
   "generation_count": 2
 }
