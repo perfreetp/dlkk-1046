@@ -3,9 +3,10 @@ import json
 import csv
 from pathlib import Path
 from tabulate import tabulate
-from typing import List, Dict
+from typing import List, Dict, Optional
+from datetime import datetime
 
-from ..models import Pet
+from ..models import Pet, ReviewEntry, BatchTaskRecord
 from ..generator import NameGenerator
 from ..cli import pass_storage
 
@@ -46,11 +47,14 @@ GENDER_CN = {
               help="自定义模板字段 key=value，可多次指定，如 wechat=adopt2024")
 @click.option("--template", help="模板配置文件路径（YAML/JSON），可一次设置所有模板字段")
 @click.option("--preview", type=int, default=0, help="导出前预览前N行内容")
+@click.option("--task-id", help="关联的批量任务ID，用于生成交接摘要信息")
+@click.option("--owner", help="负责人姓名")
+@click.option("--store", help="门店名称")
 @pass_storage
 def export(storage, fmt, output, pet_ids, batch, species, named_only,
            include_candidates, include_favorites, group_by_species,
            contact_phone, location, event_date, event_name, organizer, event_note,
-           qr_code, custom_fields, template, preview):
+           qr_code, custom_fields, template, preview, task_id, owner, store):
     """导出领养海报名单或数据文件"""
 
     template_data = _load_template(template)
@@ -95,16 +99,25 @@ def export(storage, fmt, output, pet_ids, batch, species, named_only,
         _export_list(pets, include_candidates, include_favorites)
         return
 
+    task_obj = storage.get_task(task_id) if task_id else None
+    handover_summary = _build_handover_summary(
+        pets,
+        reviews=task_obj.reviews if task_obj else None,
+        task=task_obj,
+        owner=owner,
+        store=store,
+    )
+
     if fmt == "poster":
-        content = _generate_poster(pets, include_candidates, include_favorites, group_by_species, template_data)
+        content = _generate_poster(pets, include_candidates, include_favorites, group_by_species, template_data, handover_summary)
     elif fmt == "csv":
-        content = _generate_csv(pets, include_candidates, include_favorites, template_data, group_by_species)
+        content = _generate_csv(pets, include_candidates, include_favorites, template_data, group_by_species, handover_summary)
     elif fmt == "json":
-        content = _generate_json(pets, include_candidates, include_favorites, template_data, group_by_species)
+        content = _generate_json(pets, include_candidates, include_favorites, template_data, group_by_species, handover_summary)
     elif fmt == "excel":
         if not output:
             output = "adoption_list.xlsx"
-        _generate_excel(storage, pets, output, include_candidates, include_favorites, template_data, group_by_species)
+        _generate_excel(storage, pets, output, include_candidates, include_favorites, template_data, group_by_species, handover_summary)
         click.echo(click.style(f"\n已导出到 {output}", fg="green"))
         return
 
@@ -150,6 +163,49 @@ def _load_template(template_path: str = None) -> dict:
         return json.loads(text)
     else:
         raise click.ClickException("仅支持 YAML 和 JSON 格式的模板文件")
+
+
+def _build_handover_summary(pets: List[Pet], reviews: Optional[List[ReviewEntry]] = None,
+                            task: Optional[BatchTaskRecord] = None,
+                            owner: Optional[str] = None, store: Optional[str] = None) -> dict:
+    species_breakdown: Dict[str, Dict[str, int]] = {}
+    for sp_key in ["cat", "dog", "rabbit"]:
+        sp_pets = [p for p in pets if p.species == sp_key]
+        sp_named = sum(1 for p in sp_pets if p.selected_name)
+        species_breakdown[sp_key] = {
+            "count": len(sp_pets),
+            "named_count": sp_named,
+            "missing_count": len(sp_pets) - sp_named,
+        }
+
+    named_count = sum(1 for p in pets if p.selected_name)
+    total_count = len(pets)
+
+    summary = {
+        "generated_at": datetime.now().isoformat(),
+        "owner": owner or (task.owner if task else None),
+        "store": store or (task.store if task else None),
+        "total_count": total_count,
+        "species_breakdown": species_breakdown,
+        "named_count": named_count,
+        "missing_count": total_count - named_count,
+        "task_id": task.id if task else None,
+        "task_status": task.status if task else None,
+    }
+
+    if reviews:
+        review_stats = {
+            "accepted": 0,
+            "modified": 0,
+            "rejected": 0,
+            "pending": 0,
+        }
+        for r in reviews:
+            if r.status in review_stats:
+                review_stats[r.status] += 1
+        summary["review_stats"] = review_stats
+
+    return summary
 
 
 def _export_list(pets: List[Pet], include_candidates: bool, include_favorites: bool):
@@ -271,9 +327,41 @@ def _build_event_footer(template_data: dict, total_count: int, width: int = 60) 
 
 
 def _generate_poster(pets: List[Pet], include_candidates: bool, include_favorites: bool,
-                     group_by_species: bool, template_data: dict) -> str:
+                     group_by_species: bool, template_data: dict,
+                     handover_summary: Optional[dict] = None) -> str:
     lines = []
     width = 60
+
+    if handover_summary:
+        hs = handover_summary
+        lines.append("=" * width)
+        lines.append(f"{'========== 活动交接摘要 ==========':^{width}}")
+        lines.append(f"📅 生成时间: {hs.get('generated_at', '')}")
+        owner_val = hs.get("owner") or "-"
+        store_val = hs.get("store") or "-"
+        lines.append(f"👤 负责人: {owner_val}      🏪 门店: {store_val}")
+        task_id_val = hs.get("task_id") or "-"
+        task_status_val = hs.get("task_status") or "-"
+        lines.append(f"📋 任务ID: {task_id_val}      📊 任务状态: {task_status_val}")
+        total = hs.get("total_count", 0)
+        named = hs.get("named_count", 0)
+        missing = hs.get("missing_count", 0)
+        lines.append(f"🐾 总计 {total} 只：已起名 {named} 只，未起名 {missing} 只")
+        species_breakdown = hs.get("species_breakdown", {})
+        for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
+            sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0})
+            lines.append(f"  {sp_label} {sp_info['count']} 只（已起名 {sp_info['named_count']}，缺 {sp_info['missing_count']}）")
+        review_stats = hs.get("review_stats")
+        if review_stats:
+            lines.append(
+                f"✅ 审核：已接受 {review_stats.get('accepted', 0)} / "
+                f"已修改 {review_stats.get('modified', 0)} / "
+                f"已拒绝 {review_stats.get('rejected', 0)} / "
+                f"待审核 {review_stats.get('pending', 0)}"
+            )
+        lines.append("=" * width)
+        lines.append("")
+
     lines.extend(_build_event_header(template_data, width))
     
     contact_phone = template_data.get("contact_phone", "")
@@ -419,11 +507,42 @@ def _build_pet_dict(pet: Pet, include_candidates: bool, include_favorites: bool)
 
 
 def _generate_csv(pets: List[Pet], include_candidates: bool, include_favorites: bool,
-                  template_data: dict, group_by_species: bool = False) -> str:
+                  template_data: dict, group_by_species: bool = False,
+                  handover_summary: Optional[dict] = None) -> str:
     import io
 
     output = io.StringIO()
     writer = csv.writer(output)
+
+    if handover_summary:
+        hs = handover_summary
+        writer.writerow(["# 交接摘要"])
+        writer.writerow([f"# 生成时间: {hs.get('generated_at', '')}"])
+        writer.writerow([f"# 负责人: {hs.get('owner') or '-'}"])
+        writer.writerow([f"# 门店: {hs.get('store') or '-'}"])
+        writer.writerow([f"# 任务ID: {hs.get('task_id') or '-'}"])
+        writer.writerow([
+            f"# 总览: 总计{hs.get('total_count', 0)}只 / "
+            f"已起名{hs.get('named_count', 0)} / "
+            f"缺{hs.get('missing_count', 0)}"
+        ])
+        species_breakdown = hs.get("species_breakdown", {})
+        species_parts = []
+        for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
+            sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0})
+            species_parts.append(
+                f"{sp_label} {sp_info['count']}(已{sp_info['named_count']}/缺{sp_info['missing_count']})"
+            )
+        writer.writerow([f"# 物种: {' | '.join(species_parts)}"])
+        review_stats = hs.get("review_stats")
+        if review_stats:
+            writer.writerow([
+                f"# 审核: 已接受{review_stats.get('accepted', 0)} / "
+                f"已修改{review_stats.get('modified', 0)} / "
+                f"已拒绝{review_stats.get('rejected', 0)} / "
+                f"待审核{review_stats.get('pending', 0)}"
+            ])
+        writer.writerow([])
 
     if template_data:
         writer.writerow(["活动信息"])
@@ -477,11 +596,15 @@ def _generate_csv(pets: List[Pet], include_candidates: bool, include_favorites: 
 
 
 def _generate_json(pets: List[Pet], include_candidates: bool, include_favorites: bool,
-                   template_data: dict, group_by_species: bool = False) -> str:
+                   template_data: dict, group_by_species: bool = False,
+                   handover_summary: Optional[dict] = None) -> str:
     result = {
         "event_info": template_data if template_data else {},
         "total_count": len(pets),
     }
+
+    if handover_summary:
+        result["handover_summary"] = handover_summary
 
     if group_by_species:
         groups: Dict[str, List[dict]] = {}
@@ -515,7 +638,8 @@ def _generate_json(pets: List[Pet], include_candidates: bool, include_favorites:
 
 def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: bool,
                     include_favorites: bool, template_data: dict,
-                    group_by_species: bool = False):
+                    group_by_species: bool = False,
+                    handover_summary: Optional[dict] = None):
     import pandas as pd
 
     def _build_rows(pet_list: List[Pet]) -> list:
@@ -543,6 +667,32 @@ def _generate_excel(storage, pets: List[Pet], output: str, include_candidates: b
 
     try:
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            if handover_summary:
+                hs = handover_summary
+                summary_rows = []
+                summary_rows.append({"项": "生成时间", "值": hs.get("generated_at", "")})
+                summary_rows.append({"项": "负责人", "值": hs.get("owner") or ""})
+                summary_rows.append({"项": "门店", "值": hs.get("store") or ""})
+                summary_rows.append({"项": "任务ID", "值": hs.get("task_id") or ""})
+                summary_rows.append({"项": "任务状态", "值": hs.get("task_status") or ""})
+                summary_rows.append({"项": "总宠物数", "值": hs.get("total_count", 0)})
+                summary_rows.append({"项": "已起名数", "值": hs.get("named_count", 0)})
+                summary_rows.append({"项": "缺名额", "值": hs.get("missing_count", 0)})
+                species_breakdown = hs.get("species_breakdown", {})
+                for sp_key, sp_label in [("cat", "猫咪"), ("dog", "狗狗"), ("rabbit", "兔子")]:
+                    sp_info = species_breakdown.get(sp_key, {"count": 0, "named_count": 0, "missing_count": 0})
+                    summary_rows.append({
+                        "项": f"{sp_label}数量",
+                        "值": f"{sp_info['count']} (已起名{sp_info['named_count']}/缺{sp_info['missing_count']})"
+                    })
+                review_stats = hs.get("review_stats")
+                if review_stats:
+                    summary_rows.append({"项": "审核-已接受", "值": review_stats.get("accepted", 0)})
+                    summary_rows.append({"项": "审核-已修改", "值": review_stats.get("modified", 0)})
+                    summary_rows.append({"项": "审核-已拒绝", "值": review_stats.get("rejected", 0)})
+                    summary_rows.append({"项": "审核-待审核", "值": review_stats.get("pending", 0)})
+                pd.DataFrame(summary_rows).to_excel(writer, index=False, sheet_name="交接摘要")
+
             if group_by_species:
                 species_groups: Dict[str, List[Pet]] = {}
                 for pet in pets:

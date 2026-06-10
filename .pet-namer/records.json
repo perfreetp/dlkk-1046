@@ -1,7 +1,7 @@
 [
   {
-    "id": "ed3b93b2ff6e",
-    "timestamp": "2026-06-10T21:01:40.417867",
+    "id": "a3a5ed4dd496",
+    "timestamp": "2026-06-10T22:06:33.811685",
     "params": {
       "species": null,
       "gender": null,
@@ -13,82 +13,102 @@
       "batch": null,
       "min_length": null,
       "max_length": null,
-      "language": "zh",
-      "style": "cute",
+      "language": null,
+      "style": null,
       "forbidden_words": [],
-      "candidates_per_pet": 3,
+      "candidates_per_pet": 5,
       "exclude_used": true,
       "avoid_similar": true
     },
     "pet_ids": [
-      "27418626",
-      "faff1bd8",
-      "008fd126",
-      "774cb9f1",
-      "625711cf",
-      "7000dabd",
-      "540d05a6",
-      "d1435eb7",
-      "050a34b8",
-      "3161e791"
+      "0c3867ff",
+      "80c39730",
+      "e5639311",
+      "4f75a737",
+      "ab1c7bed",
+      "63aa02ff",
+      "4945dcdd",
+      "81229082",
+      "d57f0237",
+      "f2e96519"
     ],
     "generated_names": {
-      "27418626": [
+      "0c3867ff": [
         "奶茶",
+        "Bella",
         "棉花糖",
-        "糖糖"
+        "Angel",
+        "Lucy"
       ],
-      "faff1bd8": [
+      "80c39730": [
+        "小虎",
+        "Max",
         "可乐",
-        "汉堡",
-        "小暖男"
+        "Milo",
+        "Charlie"
       ],
-      "008fd126": [
-        "甜甜",
-        "桃桃",
-        "蜜蜜"
+      "e5639311": [
+        "Luna",
+        "糖糖",
+        "如意",
+        "欢欢",
+        "妞妞"
       ],
-      "774cb9f1": [
+      "4f75a737": [
+        "旺财",
+        "Buddy",
+        "大白",
+        "来福",
+        "Shadow"
+      ],
+      "ab1c7bed": [
+        "Daisy",
+        "Princess",
+        "云朵",
+        "Stella",
+        "甜甜"
+      ],
+      "63aa02ff": [
+        "Rocky",
+        "闪电",
+        "悟空",
+        "钢铁侠",
+        "龙飞"
+      ],
+      "4945dcdd": [
+        "宝宝",
         "团子",
         "雪球",
-        "毛毛"
+        "毛毛",
+        "布丁"
       ],
-      "625711cf": [
-        "樱樱",
-        "莉莉",
-        "茉莉"
-      ],
-      "7000dabd": [
-        "果果",
-        "跳跳",
-        "柠柠"
-      ],
-      "540d05a6": [
-        "布丁",
-        "汤圆",
-        "云朵"
-      ],
-      "d1435eb7": [
+      "81229082": [
         "豆豆",
-        "宝宝",
-        "Fluffy"
+        "Fluffy",
+        "汤圆",
+        "福宝",
+        "Snowball"
       ],
-      "050a34b8": [
+      "d57f0237": [
         "黑武士",
         "山水",
-        "乖乖"
+        "招财",
+        "吉祥",
+        "平安"
       ],
-      "3161e791": [
-        "薯条",
-        "玫玫",
-        "欢欢"
+      "f2e96519": [
+        "Bubbles",
+        "哪吒",
+        "Coco",
+        "多多",
+        "薯条"
       ]
     },
     "selected_names": {}
   },
   {
-    "id": "d948d39e-ec11-4050-92eb-99640421f5f4",
-    "timestamp": "2026-06-10T21:03:07.061158",
+    "id": "1d83dbcbb511",
+    "timestamp": "2026-06-10T22:10:10.862677",
     "params": {
       "species": null,
       "gender": null,
@@ -108,25 +128,67 @@
       "avoid_similar": true
     },
     "pet_ids": [
-      "27418626",
-      "008fd126",
-      "3161e791"
+      "c45716ee",
+      "d9982ed2",
+      "899778e7",
+      "9abbd697",
+      "7f13753c",
+      "5aa87d2e",
+      "8484f476",
+      "5879ea85",
+      "dca18c0a",
+      "e4c4b8f7"
     ],
     "generated_names": {
-      "27418626": [
+      "c45716ee": [
         "Bella",
         "Angel",
         "Lucy"
       ],
-      "008fd126": [
-        "Daisy",
-        "Molly",
-        "Princess"
+      "d9982ed2": [
+        "Max",
+        "Milo",
+        "Charlie"
       ],
-      "3161e791": [
-        "Coco",
-        "Snowball",
+      "899778e7": [
+        "Princess",
+        "Sunny",
+        "Coco"
+      ],
+      "9abbd697": [
+        "Buddy",
+        "Shadow",
         "Peanut"
+      ],
+      "7f13753c": [
+        "Snowball",
+        "Luna",
+        "Stella"
+      ],
+      "5aa87d2e": [
+        "Wiggles",
+        "Sparkle",
+        "Zeus"
+      ],
+      "8484f476": [
+        "Fluffy",
+        "Puff",
+        "糖糖"
+      ],
+      "5879ea85": [
+        "豆豆",
+        "团子",
+        "雪球"
+      ],
+      "dca18c0a": [
+        "Sky",
+        "Sage",
+        "River"
+      ],
+      "e4c4b8f7": [
+        "Bubbles",
+        "Whiskers",
+        "Boots"
       ]
     },
     "selected_names": {}

@@ -1,6 +1,6 @@
 [
   {
-    "id": "27418626",
+    "id": "0c3867ff",
     "species": "cat",
     "gender": "female",
     "age": "幼年",
@@ -14,18 +14,18 @@
     "source": "爱心救助站",
     "selected_name": "奶茶",
     "candidate_names": [
+      "奶茶",
       "Bella",
+      "棉花糖",
       "Angel",
       "Lucy"
     ],
-    "favorite_names": [
-      "奶茶"
-    ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.393852"
+    "created_at": "2026-06-10T22:06:33.786023"
   },
   {
-    "id": "faff1bd8",
+    "id": "80c39730",
     "species": "cat",
     "gender": "male",
     "age": "幼年",
@@ -37,20 +37,20 @@
     ],
     "batch": "2024-06-A",
     "source": "爱心救助站",
-    "selected_name": "可乐",
+    "selected_name": "小虎",
     "candidate_names": [
+      "小虎",
+      "Max",
       "可乐",
-      "汉堡",
-      "小暖男"
+      "Milo",
+      "Charlie"
     ],
-    "favorite_names": [
-      "可乐"
-    ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.394012"
+    "created_at": "2026-06-10T22:06:33.786212"
   },
   {
-    "id": "008fd126",
+    "id": "e5639311",
     "species": "cat",
     "gender": "female",
     "age": "成年",
@@ -62,20 +62,20 @@
     ],
     "batch": "2024-05-B",
     "source": "社区投喂",
-    "selected_name": "甜甜",
+    "selected_name": "月光",
     "candidate_names": [
-      "Daisy",
-      "Molly",
-      "Princess"
+      "Luna",
+      "糖糖",
+      "如意",
+      "欢欢",
+      "妞妞"
     ],
-    "favorite_names": [
-      "甜甜"
-    ],
+    "favorite_names": [],
     "notes": "已绝育",
-    "created_at": "2026-06-10T21:01:40.394125"
+    "created_at": "2026-06-10T22:06:33.786324"
   },
   {
-    "id": "774cb9f1",
+    "id": "4f75a737",
     "species": "dog",
     "gender": "male",
     "age": "青年",
@@ -87,20 +87,20 @@
     ],
     "batch": "2024-06-A",
     "source": "爱心救助站",
-    "selected_name": "团子",
+    "selected_name": "旺财",
     "candidate_names": [
-      "团子",
-      "雪球",
-      "毛毛"
+      "旺财",
+      "Buddy",
+      "大白",
+      "来福",
+      "Shadow"
     ],
-    "favorite_names": [
-      "团子"
-    ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.394314"
+    "created_at": "2026-06-10T22:06:33.786395"
   },
   {
-    "id": "625711cf",
+    "id": "ab1c7bed",
     "species": "dog",
     "gender": "female",
     "age": "成年",
@@ -112,20 +112,20 @@
     ],
     "batch": "2024-05-B",
     "source": "原主人弃养",
-    "selected_name": "樱樱",
+    "selected_name": "Daisy",
     "candidate_names": [
-      "樱樱",
-      "莉莉",
-      "茉莉"
+      "Daisy",
+      "Princess",
+      "云朵",
+      "Stella",
+      "甜甜"
     ],
-    "favorite_names": [
-      "樱樱"
-    ],
+    "favorite_names": [],
     "notes": "已打疫苗",
-    "created_at": "2026-06-10T21:01:40.394434"
+    "created_at": "2026-06-10T22:06:33.786457"
   },
   {
-    "id": "7000dabd",
+    "id": "63aa02ff",
     "species": "dog",
     "gender": "male",
     "age": "幼年",
@@ -137,20 +137,20 @@
     ],
     "batch": "2024-06-A",
     "source": "爱心救助站",
-    "selected_name": "果果",
+    "selected_name": "Rocky",
     "candidate_names": [
-      "果果",
-      "跳跳",
-      "柠柠"
+      "Rocky",
+      "闪电",
+      "悟空",
+      "钢铁侠",
+      "龙飞"
     ],
-    "favorite_names": [
-      "果果"
-    ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.394522"
+    "created_at": "2026-06-10T22:06:33.786515"
   },
   {
-    "id": "540d05a6",
+    "id": "4945dcdd",
     "species": "rabbit",
     "gender": "female",
     "age": "幼年",
@@ -162,20 +162,20 @@
     ],
     "batch": "2024-06-B",
     "source": "宠物医院",
-    "selected_name": "布丁",
+    "selected_name": "宝宝",
     "candidate_names": [
-      "布丁",
-      "汤圆",
-      "云朵"
-    ],
-    "favorite_names": [
+      "宝宝",
+      "团子",
+      "雪球",
+      "毛毛",
       "布丁"
     ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.394609"
+    "created_at": "2026-06-10T22:06:33.786574"
   },
   {
-    "id": "d1435eb7",
+    "id": "81229082",
     "species": "rabbit",
     "gender": "male",
     "age": "青年",
@@ -187,20 +187,20 @@
     ],
     "batch": "2024-05-B",
     "source": "爱心救助站",
-    "selected_name": "Fluffy",
+    "selected_name": null,
     "candidate_names": [
       "豆豆",
-      "宝宝",
-      "Fluffy"
+      "Fluffy",
+      "汤圆",
+      "福宝",
+      "Snowball"
     ],
-    "favorite_names": [
-      "Fluffy"
-    ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.394700"
+    "created_at": "2026-06-10T22:06:33.786629"
   },
   {
-    "id": "050a34b8",
+    "id": "d57f0237",
     "species": "cat",
     "gender": "male",
     "age": "成年",
@@ -212,20 +212,20 @@
     ],
     "batch": "2024-04-C",
     "source": "社区投喂",
-    "selected_name": "乖乖",
+    "selected_name": null,
     "candidate_names": [
       "黑武士",
       "山水",
-      "乖乖"
+      "招财",
+      "吉祥",
+      "平安"
     ],
-    "favorite_names": [
-      "乖乖"
-    ],
+    "favorite_names": [],
     "notes": null,
-    "created_at": "2026-06-10T21:01:40.394789"
+    "created_at": "2026-06-10T22:06:33.786685"
   },
   {
-    "id": "3161e791",
+    "id": "f2e96519",
     "species": "cat",
     "gender": "female",
     "age": "幼年",
@@ -237,16 +237,246 @@
     ],
     "batch": "2024-06-A",
     "source": "爱心救助站",
-    "selected_name": "薯条",
+    "selected_name": "三花奶糖",
     "candidate_names": [
+      "Bubbles",
+      "哪吒",
       "Coco",
-      "Snowball",
-      "Peanut"
-    ],
-    "favorite_names": [
+      "多多",
       "薯条"
     ],
+    "favorite_names": [],
     "notes": "小名叫花花",
-    "created_at": "2026-06-10T21:01:40.394886"
+    "created_at": "2026-06-10T22:06:33.786779"
+  },
+  {
+    "id": "c45716ee",
+    "species": "cat",
+    "gender": "female",
+    "age": "幼年",
+    "age_months": 3,
+    "coat_color": "橘色",
+    "personality": [
+      "活泼",
+      "亲人"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "Bella",
+      "Angel",
+      "Lucy"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.831546"
+  },
+  {
+    "id": "d9982ed2",
+    "species": "cat",
+    "gender": "male",
+    "age": "幼年",
+    "age_months": 4,
+    "coat_color": "黑色",
+    "personality": [
+      "安静",
+      "害羞"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "Max",
+      "Milo",
+      "Charlie"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.831730"
+  },
+  {
+    "id": "899778e7",
+    "species": "cat",
+    "gender": "female",
+    "age": "成年",
+    "age_months": 24,
+    "coat_color": "白色",
+    "personality": [
+      "温柔",
+      "黏人"
+    ],
+    "batch": "2024-05-B",
+    "source": "社区投喂",
+    "selected_name": null,
+    "candidate_names": [
+      "Princess",
+      "Sunny",
+      "Coco"
+    ],
+    "favorite_names": [],
+    "notes": "已绝育",
+    "created_at": "2026-06-10T22:10:10.831843"
+  },
+  {
+    "id": "9abbd697",
+    "species": "dog",
+    "gender": "male",
+    "age": "青年",
+    "age_months": 12,
+    "coat_color": "黄色",
+    "personality": [
+      "活泼",
+      "忠诚"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "Buddy",
+      "Shadow",
+      "Peanut"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.831952"
+  },
+  {
+    "id": "7f13753c",
+    "species": "dog",
+    "gender": "female",
+    "age": "成年",
+    "age_months": 36,
+    "coat_color": "棕色",
+    "personality": [
+      "温顺",
+      "聪明"
+    ],
+    "batch": "2024-05-B",
+    "source": "原主人弃养",
+    "selected_name": null,
+    "candidate_names": [
+      "Snowball",
+      "Luna",
+      "Stella"
+    ],
+    "favorite_names": [],
+    "notes": "已打疫苗",
+    "created_at": "2026-06-10T22:10:10.832073"
+  },
+  {
+    "id": "5aa87d2e",
+    "species": "dog",
+    "gender": "male",
+    "age": "幼年",
+    "age_months": 6,
+    "coat_color": "黑白",
+    "personality": [
+      "顽皮",
+      "energetic"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "Wiggles",
+      "Sparkle",
+      "Zeus"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.832167"
+  },
+  {
+    "id": "8484f476",
+    "species": "rabbit",
+    "gender": "female",
+    "age": "幼年",
+    "age_months": 2,
+    "coat_color": "白色",
+    "personality": [
+      "胆小",
+      "gentle"
+    ],
+    "batch": "2024-06-B",
+    "source": "宠物医院",
+    "selected_name": null,
+    "candidate_names": [
+      "Fluffy",
+      "Puff",
+      "糖糖"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.832267"
+  },
+  {
+    "id": "5879ea85",
+    "species": "rabbit",
+    "gender": "male",
+    "age": "青年",
+    "age_months": 8,
+    "coat_color": "灰色",
+    "personality": [
+      "安静",
+      "independent"
+    ],
+    "batch": "2024-05-B",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "豆豆",
+      "团子",
+      "雪球"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.832332"
+  },
+  {
+    "id": "dca18c0a",
+    "species": "cat",
+    "gender": "male",
+    "age": "成年",
+    "age_months": 48,
+    "coat_color": "灰色",
+    "personality": [
+      "沉稳",
+      "calm"
+    ],
+    "batch": "2024-04-C",
+    "source": "社区投喂",
+    "selected_name": null,
+    "candidate_names": [
+      "Sky",
+      "Sage",
+      "River"
+    ],
+    "favorite_names": [],
+    "notes": null,
+    "created_at": "2026-06-10T22:10:10.832391"
+  },
+  {
+    "id": "e4c4b8f7",
+    "species": "cat",
+    "gender": "female",
+    "age": "幼年",
+    "age_months": 5,
+    "coat_color": "三花",
+    "personality": [
+      "活泼",
+      "playful"
+    ],
+    "batch": "2024-06-A",
+    "source": "爱心救助站",
+    "selected_name": null,
+    "candidate_names": [
+      "Bubbles",
+      "Whiskers",
+      "Boots"
+    ],
+    "favorite_names": [],
+    "notes": "小名叫花花",
+    "created_at": "2026-06-10T22:10:10.832476"
   }
 ]

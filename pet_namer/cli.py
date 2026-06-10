@@ -25,6 +25,7 @@ from .commands.rename import rename
 from .commands.export import export
 from .commands.stats import stats
 from .commands.batch import batch
+from .commands.review import review
 
 cli.add_command(generate)
 cli.add_command(filter_cmd, name="filter")
@@ -34,6 +35,7 @@ cli.add_command(rename)
 cli.add_command(export)
 cli.add_command(stats)
 cli.add_command(batch)
+cli.add_command(review)
 
 
 def main():

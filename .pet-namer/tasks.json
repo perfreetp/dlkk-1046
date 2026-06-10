@@ -1,13 +1,13 @@
 [
   {
-    "id": "0afb0317e2a3",
-    "timestamp": "2026-06-10T21:01:40.386479",
-    "status": "completed",
+    "id": "91b6046b0433",
+    "timestamp": "2026-06-10T22:06:33.777705",
+    "status": "export_confirmed",
     "steps": [
       {
         "name": "import",
-        "started_at": "2026-06-10T21:01:40.390727",
-        "finished_at": "2026-06-10T21:01:40.401272",
+        "started_at": "2026-06-10T22:06:33.781618",
+        "finished_at": "2026-06-10T22:06:33.793080",
         "total_count": 10,
         "success_count": 10,
         "failed_ids": [],
@@ -17,52 +17,302 @@
       },
       {
         "name": "generate",
-        "started_at": "2026-06-10T21:01:40.401926",
-        "finished_at": "2026-06-10T21:01:40.419222",
+        "started_at": "2026-06-10T22:06:33.793847",
+        "finished_at": "2026-06-10T22:06:33.813013",
         "total_count": 10,
         "success_count": 10,
         "failed_ids": [],
         "extra": {
-          "generation_record": "ed3b93b2ff6e"
+          "generation_record": "a3a5ed4dd496"
         }
       },
       {
         "name": "recommend",
-        "started_at": "2026-06-10T21:01:40.419959",
-        "finished_at": "2026-06-10T21:01:40.429309",
+        "started_at": "2026-06-10T22:06:33.813715",
+        "finished_at": "2026-06-10T22:06:33.817374",
         "total_count": 10,
         "success_count": 10,
         "failed_ids": [],
         "extra": {
-          "strategy": "cute_first",
-          "auto_select": true
+          "strategy": "top_score",
+          "auto_select": false
         }
       },
       {
         "name": "export",
-        "started_at": "2026-06-10T21:01:40.430283",
-        "finished_at": "2026-06-10T21:01:40.431143",
+        "started_at": "2026-06-10T22:06:33.818213",
+        "finished_at": "2026-06-10T22:06:33.819182",
         "total_count": 10,
         "success_count": 10,
         "failed_ids": [],
         "extra": {
           "format": "csv",
-          "output_file": "adoption_list_20260610_210140.csv"
+          "output_file": "test_task1.csv"
         }
       }
     ],
     "params": {
       "import_file": "examples/sample_pets.csv",
-      "batch_name": "TEST-001",
-      "count": 3,
-      "style": "cute",
-      "language": "zh",
+      "batch_name": null,
+      "count": 5,
+      "style": "all",
+      "language": "all",
       "species": "all",
-      "recommend": "cute_first",
-      "auto_select": true,
-      "export_format": "csv"
+      "recommend": "top_score",
+      "auto_select": false,
+      "export_format": "csv",
+      "owner": "张小花",
+      "store": "总店",
+      "tags": [
+        "618活动",
+        "夏季领养"
+      ],
+      "handoff_status": "in_progress",
+      "handoff_to": null
     },
-    "export_file": "adoption_list_20260610_210140.csv",
-    "generation_record_id": "ed3b93b2ff6e"
+    "export_file": "test_task1.csv",
+    "generation_record_id": "a3a5ed4dd496",
+    "owner": "张小花",
+    "store": "总店",
+    "tags": [
+      "618活动",
+      "夏季领养"
+    ],
+    "handoff_status": "waiting",
+    "handoff_to": "李主管",
+    "export_confirmed": true,
+    "reviews": [
+      {
+        "pet_id": "0c3867ff",
+        "recommended_name": "奶茶",
+        "final_name": "奶茶",
+        "status": "accepted",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "80c39730",
+        "recommended_name": "小虎",
+        "final_name": "小虎",
+        "status": "accepted",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "e5639311",
+        "recommended_name": "Luna",
+        "final_name": "月光",
+        "status": "modified",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "4f75a737",
+        "recommended_name": "旺财",
+        "final_name": "旺财",
+        "status": "accepted",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "ab1c7bed",
+        "recommended_name": "Daisy",
+        "final_name": "Daisy",
+        "status": "accepted",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "63aa02ff",
+        "recommended_name": "Rocky",
+        "final_name": "Rocky",
+        "status": "accepted",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "4945dcdd",
+        "recommended_name": "宝宝",
+        "final_name": "宝宝",
+        "status": "accepted",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "81229082",
+        "recommended_name": "豆豆",
+        "final_name": null,
+        "status": "rejected",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      },
+      {
+        "pet_id": "d57f0237",
+        "recommended_name": "黑武士",
+        "final_name": null,
+        "status": "pending",
+        "note": "沉稳、适合有养猫经验家庭",
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "f2e96519",
+        "recommended_name": "Bubbles",
+        "final_name": "三花奶糖",
+        "status": "modified",
+        "note": null,
+        "reviewed_at": "2026-06-10T22:07:42.972861"
+      }
+    ]
+  },
+  {
+    "id": "3d5a2f563e19",
+    "timestamp": "2026-06-10T22:10:10.823883",
+    "status": "completed",
+    "steps": [
+      {
+        "name": "import",
+        "started_at": "2026-06-10T22:10:10.827784",
+        "finished_at": "2026-06-10T22:10:10.842254",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "from_file": "examples/sample_pets.csv"
+        }
+      },
+      {
+        "name": "generate",
+        "started_at": "2026-06-10T22:10:10.843078",
+        "finished_at": "2026-06-10T22:10:10.865246",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "generation_record": "1d83dbcbb511"
+        }
+      },
+      {
+        "name": "recommend",
+        "started_at": "2026-06-10T22:10:10.866315",
+        "finished_at": "2026-06-10T22:10:10.868927",
+        "total_count": 10,
+        "success_count": 10,
+        "failed_ids": [],
+        "extra": {
+          "strategy": "short_first",
+          "auto_select": false
+        }
+      }
+    ],
+    "params": {
+      "import_file": "examples/sample_pets.csv",
+      "batch_name": null,
+      "count": 3,
+      "style": "western",
+      "language": "en",
+      "species": "all",
+      "recommend": "short_first",
+      "auto_select": false,
+      "export_format": "none",
+      "owner": "王小明",
+      "store": "分店B",
+      "tags": [
+        "周年庆"
+      ],
+      "handoff_status": "not_started",
+      "handoff_to": null
+    },
+    "export_file": null,
+    "generation_record_id": "1d83dbcbb511",
+    "owner": "王小明",
+    "store": "分店B",
+    "tags": [
+      "周年庆"
+    ],
+    "handoff_status": "not_started",
+    "handoff_to": null,
+    "export_confirmed": false,
+    "reviews": [
+      {
+        "pet_id": "c45716ee",
+        "recommended_name": "Lucy",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "d9982ed2",
+        "recommended_name": "Max",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "899778e7",
+        "recommended_name": "Coco",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "9abbd697",
+        "recommended_name": "Buddy",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "7f13753c",
+        "recommended_name": "Luna",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "5aa87d2e",
+        "recommended_name": "Zeus",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "8484f476",
+        "recommended_name": "糖糖",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "5879ea85",
+        "recommended_name": "豆豆",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "dca18c0a",
+        "recommended_name": "Sky",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      },
+      {
+        "pet_id": "e4c4b8f7",
+        "recommended_name": "Boots",
+        "final_name": null,
+        "status": "pending",
+        "note": null,
+        "reviewed_at": null
+      }
+    ]
   }
 ]

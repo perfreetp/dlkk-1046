@@ -29,7 +29,7 @@ from ..cli import pass_storage
 @click.option("--all", "all_pets", is_flag=True, help="为所有未命名宠物生成")
 @click.option("--replay", help="从生成记录ID复现参数")
 @click.option("--interactive/--no-interactive", default=True, help="交互式选择名字")
-@click.option("--diff", "diff_ids", type=str, help="对比两条记录，格式: ID1:ID2")
+@click.option("--diff", "diff_ids", type=str, help="对比两条记录，格式: ID1:ID2 (生成记录) 或 task:TASK1:TASK2 (批量任务)")
 @click.option("--diff-output", type=click.Path(), help="导出对比报告文件，后缀为 .txt 或 .json")
 @click.option("--list-records/--no-list-records", default=False, help="列出所有生成记录")
 @pass_storage
@@ -262,8 +262,16 @@ def _list_all_records(storage):
 
 
 def _diff_records(storage, diff_ids: str, output_path: str = None):
+    if diff_ids.startswith("task:"):
+        task_part = diff_ids[5:]
+        if ":" not in task_part:
+            raise click.ClickException("格式错误，任务对比请使用 task:TASK1:TASK2 格式")
+        task_a_id, task_b_id = task_part.split(":", 1)
+        _diff_tasks(storage, task_a_id, task_b_id, output_path)
+        return
+
     if ":" not in diff_ids:
-        raise click.ClickException("格式错误，请使用 ID1:ID2 格式")
+        raise click.ClickException("格式错误，请使用 ID1:ID2 或 task:TASK1:TASK2 格式")
 
     id_a, id_b = diff_ids.split(":", 1)
 
@@ -439,6 +447,285 @@ def _write_diff_report(output_path: str, info_data: dict, param_diffs: list, pet
                 lines.append(f"      仅B有:   {', '.join(c['only_b'])}")
             if not c["common"] and not c["only_a"] and not c["only_b"]:
                 lines.append("      (无候选名)")
+        lines.append("")
+
+        path.write_text("\n".join(lines), encoding="utf-8")
+
+
+TASK_STEP_LABELS = {
+    "import": "导入宠物信息",
+    "generate": "生成候选名字",
+    "recommend": "自动挑选推荐名",
+    "export": "导出领养名单",
+}
+
+TASK_PARAM_LABELS = {
+    "import_file": "导入文件", "batch_name": "批次号",
+    "count": "每只候选数", "style": "风格", "language": "语言",
+    "species": "物种筛选", "recommend": "推荐策略",
+    "auto_select": "自动设为正式名", "export_format": "导出格式",
+    "owner": "负责人", "store": "门店", "tags": "标签",
+    "handoff_status": "交接状态", "handoff_to": "交接给",
+}
+
+
+def _diff_tasks(storage, task_a_id, task_b_id, output_path=None):
+    task_a = storage.get_task(task_a_id)
+    task_b = storage.get_task(task_b_id)
+
+    if not task_a:
+        raise click.ClickException(f"找不到任务: {task_a_id}")
+    if not task_b:
+        raise click.ClickException(f"找不到任务: {task_b_id}")
+
+    ts_a = task_a.timestamp.replace("T", " ").split(".")[0]
+    ts_b = task_b.timestamp.replace("T", " ").split(".")[0]
+
+    info_data = {
+        "type": "task_diff",
+        "task_a": {
+            "id": task_a.id,
+            "timestamp": ts_a,
+            "owner": task_a.owner,
+            "store": task_a.store,
+            "tags": task_a.tags,
+            "status": task_a.status,
+            "handoff_status": task_a.handoff_status,
+        },
+        "task_b": {
+            "id": task_b.id,
+            "timestamp": ts_b,
+            "owner": task_b.owner,
+            "store": task_b.store,
+            "tags": task_b.tags,
+            "status": task_b.status,
+            "handoff_status": task_b.handoff_status,
+        },
+    }
+
+    step_names = ["import", "generate", "recommend", "export"]
+    step_diffs = []
+    for sname in step_names:
+        step_a = next((s for s in task_a.steps if s.name == sname), None)
+        step_b = next((s for s in task_b.steps if s.name == sname), None)
+        sa_success = step_a.success_count if step_a else 0
+        sa_total = step_a.total_count if step_a else 0
+        sa_failed = step_a.failed_ids if step_a else []
+        sb_success = step_b.success_count if step_b else 0
+        sb_total = step_b.total_count if step_b else 0
+        sb_failed = step_b.failed_ids if step_b else []
+        diff = (sb_success - sa_success) if (step_a or step_b) else 0
+        step_diffs.append({
+            "step": sname,
+            "step_label": TASK_STEP_LABELS.get(sname, sname),
+            "task_a": f"{sa_success}/{sa_total}" + (f" ❌{len(sa_failed)}" if sa_failed else ""),
+            "task_b": f"{sb_success}/{sb_total}" + (f" ❌{len(sb_failed)}" if sb_failed else ""),
+            "task_a_success": sa_success,
+            "task_a_total": sa_total,
+            "task_a_failed_ids": sa_failed,
+            "task_b_success": sb_success,
+            "task_b_total": sb_total,
+            "task_b_failed_ids": sb_failed,
+            "diff": diff,
+        })
+
+    param_a = task_a.params
+    param_b = task_b.params
+    all_keys = set(list(param_a.keys()) + list(param_b.keys()))
+    param_diffs = []
+
+    def _fmt_val(v):
+        if isinstance(v, list):
+            return ", ".join(str(x) for x in v) or "(空)"
+        if v is None:
+            return "(未设置)"
+        if isinstance(v, bool):
+            return "是" if v else "否"
+        return str(v)
+
+    for key in sorted(all_keys):
+        val_a = param_a.get(key)
+        val_b = param_b.get(key)
+        label = TASK_PARAM_LABELS.get(key, PARAM_LABELS.get(key, key))
+
+        if val_a == val_b:
+            continue
+
+        param_diffs.append({
+            "param": label,
+            "param_key": key,
+            "task_a": _fmt_val(val_a),
+            "task_b": _fmt_val(val_b),
+        })
+
+    reviews_a_map = {r.pet_id: r for r in task_a.reviews}
+    reviews_b_map = {r.pet_id: r for r in task_b.reviews}
+    all_pet_ids = list(dict.fromkeys(list(reviews_a_map.keys()) + list(reviews_b_map.keys())))
+    pet_changes = []
+
+    for pid in all_pet_ids:
+        r_a = reviews_a_map.get(pid)
+        r_b = reviews_b_map.get(pid)
+        rec_a = r_a.recommended_name if r_a else None
+        rec_b = r_b.recommended_name if r_b else None
+        fin_a = r_a.final_name if r_a else None
+        fin_b = r_b.final_name if r_b else None
+        status_a = r_a.status if r_a else None
+        status_b = r_b.status if r_b else None
+
+        if rec_a == rec_b and fin_a == fin_b and status_a == status_b:
+            continue
+
+        pet_changes.append({
+            "pet_id": pid,
+            "pet_id_short": pid[:8],
+            "recommended_name_a": rec_a,
+            "recommended_name_b": rec_b,
+            "final_name_a": fin_a,
+            "final_name_b": fin_b,
+            "status_a": status_a,
+            "status_b": status_b,
+        })
+
+    export_diffs = {
+        "export_file_a": task_a.export_file,
+        "export_file_b": task_b.export_file,
+        "gen_record_a": task_a.generation_record_id,
+        "gen_record_b": task_b.generation_record_id,
+    }
+
+    click.echo(click.style("=== 批量任务对比 ===", fg="cyan", bold=True))
+    click.echo()
+
+    click.echo(click.style("📋 基本信息", fg="yellow"))
+    info_table = [
+        ["", f"任务A ({task_a.id[:8]})", f"任务B ({task_b.id[:8]})"],
+        ["任务ID", task_a.id, task_b.id],
+        ["创建时间", ts_a, ts_b],
+        ["负责人", task_a.owner or "-", task_b.owner or "-"],
+        ["门店", task_a.store or "-", task_b.store or "-"],
+        ["标签", ",".join(task_a.tags) if task_a.tags else "-", ",".join(task_b.tags) if task_b.tags else "-"],
+        ["状态", task_a.status, task_b.status],
+        ["交接状态", task_a.handoff_status or "-", task_b.handoff_status or "-"],
+    ]
+    click.echo(tabulate(info_table, tablefmt="simple", headers="firstrow"))
+    click.echo()
+
+    click.echo(click.style("📊 步骤数量对比", fg="yellow"))
+    step_rows = []
+    for sd in step_diffs:
+        diff_str = f"+{sd['diff']}" if sd['diff'] > 0 else str(sd['diff']) if sd['diff'] < 0 else "0"
+        step_rows.append([sd["step_label"], sd["task_a"], sd["task_b"], diff_str])
+    click.echo(tabulate(step_rows, headers=["步骤", "任务A", "任务B", "差异"], tablefmt="simple"))
+    click.echo()
+
+    click.echo(click.style("⚙️ 参数差异", fg="yellow"))
+    if param_diffs:
+        rows = [[d["param"], d["task_a"], d["task_b"]] for d in param_diffs]
+        click.echo(tabulate(rows, headers=["参数", "任务A", "任务B"], tablefmt="simple"))
+    else:
+        click.echo("  两个任务参数完全相同 ✅")
+    click.echo()
+
+    click.echo(click.style("🐾 宠物名字变化", fg="yellow"))
+    if pet_changes:
+        rows = []
+        for c in pet_changes:
+            status_change = f"{c['status_a'] or '-'} → {c['status_b'] or '-'}"
+            rows.append([
+                c["pet_id_short"],
+                c["recommended_name_a"] or "-",
+                c["recommended_name_b"] or "-",
+                c["final_name_a"] or "-",
+                c["final_name_b"] or "-",
+                status_change,
+            ])
+        click.echo(tabulate(rows, headers=["pet_id", "任务A推荐名", "任务B推荐名", "任务A最终名", "任务B最终名", "状态变化"], tablefmt="simple"))
+    else:
+        click.echo("  没有宠物名字变化 ✅")
+    click.echo()
+
+    click.echo(click.style("📤 导出文件对比", fg="yellow"))
+    export_rows = [
+        ["导出文件", export_diffs["export_file_a"] or "-", export_diffs["export_file_b"] or "-"],
+        ["生成记录ID", export_diffs["gen_record_a"] or "-", export_diffs["gen_record_b"] or "-"],
+    ]
+    click.echo(tabulate(export_rows, headers=["", "任务A", "任务B"], tablefmt="simple"))
+    click.echo()
+
+    if output_path:
+        _write_task_diff_report(output_path, info_data, step_diffs, param_diffs, pet_changes, export_diffs)
+        click.echo(click.style(f"✅ 对比报告已导出到: {output_path}", fg="green"))
+
+
+def _write_task_diff_report(output_path: str, info_data: dict, step_diffs: list,
+                            param_diffs: list, pet_changes: list, export_diffs: dict):
+    path = Path(output_path)
+    suffix = path.suffix.lower()
+    task_a = info_data["task_a"]
+    task_b = info_data["task_b"]
+
+    if suffix == ".json":
+        report = {
+            "report_type": "task_diff",
+            "basic_info": info_data,
+            "step_diffs": step_diffs,
+            "param_diffs": param_diffs,
+            "pet_changes": pet_changes,
+            "export_diffs": export_diffs,
+        }
+        path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        lines = []
+        lines.append("=" * 60)
+        lines.append("批量任务对比报告")
+        lines.append("=" * 60)
+        lines.append("")
+
+        lines.append("【基本信息】")
+        lines.append(f"任务A: {task_a['id']}  ({task_a['timestamp']})")
+        lines.append(f"任务B: {task_b['id']}  ({task_b['timestamp']})")
+        lines.append(f"负责人: A={task_a['owner'] or '-'}, B={task_b['owner'] or '-'}")
+        lines.append(f"门店:   A={task_a['store'] or '-'}, B={task_b['store'] or '-'}")
+        lines.append(f"标签:   A={','.join(task_a['tags']) if task_a['tags'] else '-'}, B={','.join(task_b['tags']) if task_b['tags'] else '-'}")
+        lines.append(f"状态:   A={task_a['status']}, B={task_b['status']}")
+        lines.append(f"交接状态: A={task_a['handoff_status'] or '-'}, B={task_b['handoff_status'] or '-'}")
+        lines.append("")
+
+        lines.append("【步骤数量对比】")
+        for sd in step_diffs:
+            diff_str = f"+{sd['diff']}" if sd['diff'] > 0 else str(sd['diff']) if sd['diff'] < 0 else "0"
+            lines.append(f"  * {sd['step_label']}: A={sd['task_a']}, B={sd['task_b']}, 差异={diff_str}")
+            if sd["task_a_failed_ids"]:
+                lines.append(f"      A失败ID: {', '.join(sd['task_a_failed_ids'])}")
+            if sd["task_b_failed_ids"]:
+                lines.append(f"      B失败ID: {', '.join(sd['task_b_failed_ids'])}")
+        lines.append("")
+
+        lines.append("【参数差异】")
+        if param_diffs:
+            for d in param_diffs:
+                lines.append(f"  * {d['param']}:")
+                lines.append(f"      任务A: {d['task_a']}")
+                lines.append(f"      任务B: {d['task_b']}")
+        else:
+            lines.append("  两个任务参数完全相同")
+        lines.append("")
+
+        lines.append("【宠物名字变化】")
+        if pet_changes:
+            for c in pet_changes:
+                lines.append(f"  - {c['pet_id_short']}:")
+                lines.append(f"      推荐名: {c['recommended_name_a'] or '-'} → {c['recommended_name_b'] or '-'}")
+                lines.append(f"      最终名: {c['final_name_a'] or '-'} → {c['final_name_b'] or '-'}")
+                lines.append(f"      状态:   {c['status_a'] or '-'} → {c['status_b'] or '-'}")
+        else:
+            lines.append("  没有宠物名字变化")
+        lines.append("")
+
+        lines.append("【导出文件对比】")
+        lines.append(f"  导出文件:   A={export_diffs['export_file_a'] or '-'}, B={export_diffs['export_file_b'] or '-'}")
+        lines.append(f"  生成记录ID: A={export_diffs['gen_record_a'] or '-'}, B={export_diffs['gen_record_b'] or '-'}")
         lines.append("")
 
         path.write_text("\n".join(lines), encoding="utf-8")

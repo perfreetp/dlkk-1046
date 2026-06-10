@@ -192,6 +192,50 @@ class BatchTaskStep:
 
 
 @dataclass
+class ReviewEntry:
+    pet_id: str
+    recommended_name: str
+    final_name: Optional[str] = None
+    status: str = "pending"
+    note: Optional[str] = None
+    reviewed_at: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "pet_id": self.pet_id,
+            "recommended_name": self.recommended_name,
+            "final_name": self.final_name,
+            "status": self.status,
+            "note": self.note,
+            "reviewed_at": self.reviewed_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ReviewEntry":
+        return cls(
+            pet_id=data["pet_id"],
+            recommended_name=data["recommended_name"],
+            final_name=data.get("final_name"),
+            status=data.get("status", "pending"),
+            note=data.get("note"),
+            reviewed_at=data.get("reviewed_at"),
+        )
+
+
+TASK_STATUS = [
+    "draft",
+    "pending_review",
+    "review_in_progress",
+    "reviewed",
+    "export_confirmed",
+    "completed",
+    "archived",
+]
+
+HANDOFF_STATUS = ["not_started", "in_progress", "waiting", "completed", "handed_over"]
+
+
+@dataclass
 class BatchTaskRecord:
     id: str
     timestamp: str
@@ -200,6 +244,14 @@ class BatchTaskRecord:
     params: Dict[str, Any] = field(default_factory=dict)
     export_file: Optional[str] = None
     generation_record_id: Optional[str] = None
+
+    owner: Optional[str] = None
+    store: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
+    handoff_status: str = "not_started"
+    handoff_to: Optional[str] = None
+    export_confirmed: bool = False
+    reviews: List[ReviewEntry] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -210,6 +262,13 @@ class BatchTaskRecord:
             "params": self.params,
             "export_file": self.export_file,
             "generation_record_id": self.generation_record_id,
+            "owner": self.owner,
+            "store": self.store,
+            "tags": self.tags,
+            "handoff_status": self.handoff_status,
+            "handoff_to": self.handoff_to,
+            "export_confirmed": self.export_confirmed,
+            "reviews": [r.to_dict() for r in self.reviews],
         }
 
     @classmethod
@@ -222,4 +281,11 @@ class BatchTaskRecord:
             params=data.get("params", {}),
             export_file=data.get("export_file"),
             generation_record_id=data.get("generation_record_id"),
+            owner=data.get("owner"),
+            store=data.get("store"),
+            tags=data.get("tags", []),
+            handoff_status=data.get("handoff_status", "not_started"),
+            handoff_to=data.get("handoff_to"),
+            export_confirmed=data.get("export_confirmed", False),
+            reviews=[ReviewEntry.from_dict(r) for r in data.get("reviews", [])],
         )

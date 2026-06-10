@@ -8,7 +8,7 @@ from typing import List, Tuple, Dict, Optional
 
 from ..models import (
     Pet, GenerationParams, GenerationRecord, NameEntry,
-    BatchTaskRecord, BatchTaskStep,
+    BatchTaskRecord, BatchTaskStep, ReviewEntry,
 )
 from ..generator import NameGenerator
 from ..cli import pass_storage
@@ -161,21 +161,69 @@ STEP_LABELS = {
 @click.option("--show-task", "show_task_id", type=str, help="查看指定任务的详细记录")
 @click.option("--rerun-failed", "rerun_task_id", type=str,
               help="重跑指定任务中失败的宠物（只重跑生成和之后的步骤）")
+@click.option("--owner", type=str, help="负责人姓名")
+@click.option("--store", type=str, help="门店名称")
+@click.option("--tag", "tags", multiple=True, help="活动标签，可重复")
+@click.option("--handoff-status", type=click.Choice(["not_started", "in_progress", "waiting", "completed", "handed_over"]),
+              default="not_started", help="交接状态")
+@click.option("--handoff-to", type=str, help="交接给谁")
+@click.option("--filter-owner", type=str, help="列表筛选负责人")
+@click.option("--filter-store", type=str, help="列表筛选门店")
+@click.option("--filter-tag", type=str, help="列表筛选标签，包含即匹配")
+@click.option("--filter-status", type=str, help="列表筛选任务状态")
+@click.option("--only-unconfirmed", is_flag=True, help="只显示未确认导出的任务")
+@click.option("--confirm-export", "confirm_export_id", type=str, help="把指定任务ID设为导出已确认")
+@click.option("--set-handoff", "set_handoff_str", type=str, help="设置交接状态，格式 task_id:status:person")
 @pass_storage
 def batch(storage, import_file, batch_name, count, style, language, species,
           recommend, auto_select, export_fmt, output, named_only, group_by_species,
           include_candidates, include_favorites, contact_phone, location,
           event_date, event_name, organizer, event_note, qr_code, custom_fields,
           template, yes,
-          list_tasks, show_task_id, rerun_task_id):
+          list_tasks, show_task_id, rerun_task_id,
+          owner, store, tags, handoff_status, handoff_to,
+          filter_owner, filter_store, filter_tag, filter_status, only_unconfirmed,
+          confirm_export_id, set_handoff_str):
     """批量任务模式：导入→生成候选→自动推荐→导出海报"""
 
     if list_tasks:
-        _list_tasks(storage)
+        _list_tasks(storage, filter_owner, filter_store, filter_tag, filter_status, only_unconfirmed)
         return
 
     if show_task_id:
         _show_task(storage, show_task_id)
+        return
+
+    if confirm_export_id:
+        task = storage.get_task(confirm_export_id)
+        if not task:
+            raise click.ClickException(f"找不到任务: {confirm_export_id}")
+        task.export_confirmed = True
+        task.status = "export_confirmed"
+        if task.handoff_status == "in_progress":
+            task.handoff_status = "waiting"
+        storage.update_task(task)
+        click.echo(click.style(f"✅ 任务 {task.id[:8]} 已确认导出，状态已更新", fg="green"))
+        return
+
+    if set_handoff_str:
+        parts = set_handoff_str.split(":")
+        if len(parts) < 2:
+            raise click.ClickException("--set-handoff 格式应为 task_id:status 或 task_id:status:person")
+        task_id_val = parts[0]
+        status_val = parts[1]
+        person_val = parts[2] if len(parts) > 2 else None
+        if status_val not in ["not_started", "in_progress", "waiting", "completed", "handed_over"]:
+            raise click.ClickException(f"无效的交接状态: {status_val}")
+        task = storage.get_task(task_id_val)
+        if not task:
+            raise click.ClickException(f"找不到任务: {task_id_val}")
+        task.handoff_status = status_val
+        if person_val:
+            task.handoff_to = person_val
+        storage.update_task(task)
+        person_msg = f" → {person_val}" if person_val else ""
+        click.echo(click.style(f"✅ 任务 {task.id[:8]} 交接状态已设为 {status_val}{person_msg}", fg="green"))
         return
 
     if rerun_task_id:
@@ -219,7 +267,17 @@ def batch(storage, import_file, batch_name, count, style, language, species,
             "recommend": recommend,
             "auto_select": auto_select,
             "export_format": export_fmt,
+            "owner": owner,
+            "store": store,
+            "tags": list(tags or []),
+            "handoff_status": handoff_status,
+            "handoff_to": handoff_to,
         },
+        owner=owner,
+        store=store,
+        tags=list(tags or []),
+        handoff_status=handoff_status,
+        handoff_to=handoff_to,
     )
     storage.add_task(task)
 
@@ -295,6 +353,19 @@ def batch(storage, import_file, batch_name, count, style, language, species,
         step_rec.extra = {"strategy": recommend, "auto_select": auto_select}
         step_rec.finished_at = _dt.datetime.now().isoformat()
         task.steps.append(step_rec)
+
+        reviews = []
+        for rec in recommendations:
+            if rec["recommended"]:
+                pet_obj = rec.get("pet")
+                if pet_obj:
+                    reviews.append(ReviewEntry(
+                        pet_id=pet_obj.id,
+                        recommended_name=rec["recommended"],
+                        status="pending",
+                    ))
+        task.reviews = reviews
+        task.status = "pending_review"
         storage.update_task(task)
         click.echo()
 
@@ -331,15 +402,37 @@ def batch(storage, import_file, batch_name, count, style, language, species,
     click.echo(click.style(f"任务ID: {task.id}（可用 --show-task {task.id[:8]} 查看详情）", fg="cyan"))
 
 
-def _list_tasks(storage):
+def _list_tasks(storage, filter_owner=None, filter_store=None, filter_tag=None,
+                filter_status=None, only_unconfirmed=False):
     tasks = storage.load_tasks()
     if not tasks:
         click.echo("暂无批量任务记录")
         return
 
+    filtered_tasks = []
+    for task in tasks:
+        if filter_owner and (not task.owner or filter_owner not in task.owner):
+            continue
+        if filter_store and (not task.store or filter_store not in task.store):
+            continue
+        if filter_tag:
+            task_tags = task.tags or []
+            if not any(filter_tag in t for t in task_tags):
+                continue
+        if filter_status and task.status != filter_status:
+            continue
+        if only_unconfirmed and task.export_confirmed:
+            continue
+        filtered_tasks.append(task)
+
+    if not filtered_tasks:
+        click.echo("没有符合筛选条件的任务")
+        return
+
     click.echo(click.style("=== 批量任务列表 ===", fg="cyan", bold=True))
     table_data = []
-    for i, task in enumerate(reversed(tasks[-20:]), 1):
+    display_tasks = list(reversed(filtered_tasks[-20:]))
+    for i, task in enumerate(display_tasks, 1):
         ts = task.timestamp.replace("T", " ").split(".")[0]
         import_count = 0
         gen_count = 0
@@ -353,25 +446,39 @@ def _list_tasks(storage):
                 rec_count = step.success_count
 
         fmt = task.params.get("export_format", "-")
-        status_color = {"completed": "green", "running": "yellow"}.get(
-            task.status, "red"
-        ) if task.status == "completed" else None
+        status_colors = {
+            "completed": "green", "running": "yellow",
+            "pending_review": "yellow", "review_in_progress": "yellow",
+            "reviewed": "cyan", "export_confirmed": "green",
+        }
+        status_color = status_colors.get(task.status)
         status_display = click.style(task.status, fg=status_color) if status_color else task.status
 
+        handoff_display = task.handoff_status or "-"
+        if task.handoff_to:
+            handoff_display += f"→{task.handoff_to}"
+
+        confirmed_display = "是" if task.export_confirmed else "否"
+
         table_data.append([
-            len(tasks) - i + 1,
+            len(filtered_tasks) - i + 1,
             task.id[:8],
             ts,
+            task.owner or "-",
+            task.store or "-",
+            ",".join(task.tags) if task.tags else "-",
+            handoff_display,
             import_count,
             gen_count,
             rec_count,
             fmt,
+            confirmed_display,
             status_display,
         ])
 
     click.echo(tabulate(
         table_data,
-        headers=["#", "任务ID", "时间", "导入", "生成", "推荐", "导出", "状态"],
+        headers=["#", "任务ID", "时间", "负责人", "门店", "标签", "交接", "导入", "生成", "推荐", "导出", "已确认", "状态"],
         tablefmt="simple"
     ))
     click.echo()
@@ -388,6 +495,12 @@ def _show_task(storage, task_id):
     ts = task.timestamp.replace("T", " ").split(".")[0]
     click.echo(f"创建时间: {ts}")
     click.echo(f"状态: {task.status}")
+    click.echo(f"负责人: {task.owner or '-'}")
+    click.echo(f"门店: {task.store or '-'}")
+    click.echo(f"标签: {','.join(task.tags) if task.tags else '-'}")
+    click.echo(f"交接状态: {task.handoff_status or '-'}")
+    click.echo(f"交接给: {task.handoff_to or '-'}")
+    click.echo(f"已确认导出: {'是' if task.export_confirmed else '否'}")
 
     if task.export_file:
         click.echo(f"导出文件: {task.export_file}")
@@ -402,6 +515,8 @@ def _show_task(storage, task_id):
         "count": "每只候选数", "style": "风格", "language": "语言",
         "species": "物种筛选", "recommend": "推荐策略",
         "auto_select": "自动设为正式名", "export_format": "导出格式",
+        "owner": "负责人", "store": "门店", "tags": "标签",
+        "handoff_status": "交接状态", "handoff_to": "交接给",
     }
     for k, v in task.params.items():
         label = param_labels.get(k, k)
@@ -410,9 +525,47 @@ def _show_task(storage, task_id):
             val = "是" if val else "否"
         if k == "recommend" and val in RECOMMEND_LABELS:
             val = RECOMMEND_LABELS[val]
+        if k == "tags" and isinstance(val, list):
+            val = ",".join(val) if val else "-"
         param_table.append([label, val])
     click.echo(tabulate(param_table, tablefmt="simple"))
     click.echo()
+
+    if task.reviews:
+        click.echo(click.style("🔍 审核进度", fg="yellow"))
+        review_table = []
+        pending_count = 0
+        accepted_count = 0
+        modified_count = 0
+        rejected_count = 0
+        for idx, review in enumerate(task.reviews, 1):
+            reviewed_at = review.reviewed_at.replace("T", " ").split(".")[0] if review.reviewed_at else "-"
+            review_table.append([
+                idx,
+                review.pet_id[:8],
+                review.recommended_name,
+                review.final_name or "-",
+                review.status,
+                review.note or "-",
+                reviewed_at,
+            ])
+            if review.status == "pending":
+                pending_count += 1
+            elif review.status == "accepted":
+                accepted_count += 1
+            elif review.status == "modified":
+                modified_count += 1
+            elif review.status == "rejected":
+                rejected_count += 1
+
+        click.echo(tabulate(
+            review_table,
+            headers=["#", "宠物ID", "推荐名", "最终名", "状态", "备注", "审核时间"],
+            tablefmt="simple"
+        ))
+        click.echo()
+        click.echo(f"统计: pending={pending_count}, accepted={accepted_count}, modified={modified_count}, rejected={rejected_count}")
+        click.echo()
 
     click.echo(click.style("📈 步骤执行情况", fg="yellow"))
     step_table = []
@@ -538,7 +691,34 @@ def _rerun_failed(storage, task_id, count, style, language, recommend, auto_sele
 
     click.echo(click.style("【步骤 2/3】自动挑选推荐名", fg="yellow", bold=True))
     name_library = storage.load_names()
-    _ = _batch_recommend(storage, generated_pets, results, name_library, recommend, auto_select)
+    recommendations = _batch_recommend(storage, generated_pets, results, name_library, recommend, auto_select)
+
+    rerun_reviews = []
+    for rec in recommendations:
+        if rec["recommended"]:
+            pet_obj = rec.get("pet")
+            if pet_obj:
+                existing_review = None
+                for r in orig_task.reviews:
+                    if r.pet_id == pet_obj.id:
+                        existing_review = r
+                        break
+                review_entry = ReviewEntry(
+                    pet_id=pet_obj.id,
+                    recommended_name=rec["recommended"],
+                    status="pending",
+                )
+                if existing_review:
+                    review_entry.final_name = existing_review.final_name
+                    review_entry.status = existing_review.status
+                    review_entry.note = existing_review.note
+                    review_entry.reviewed_at = existing_review.reviewed_at
+                    orig_task.reviews = [r for r in orig_task.reviews if r.pet_id != pet_obj.id]
+                rerun_reviews.append(review_entry)
+    orig_task.reviews.extend(rerun_reviews)
+    if orig_task.status not in ["completed", "export_confirmed"]:
+        orig_task.status = "pending_review"
+    storage.update_task(orig_task)
     click.echo()
 
     export_result = None
@@ -742,7 +922,7 @@ def _batch_recommend(storage, pets: List[Pet], results: Dict[str, List[str]],
         progress = f"[{i}/{total}]"
         candidates = results.get(pet.id, pet.candidate_names)
         if not candidates:
-            recommendations.append({"pet_id": pet.id, "recommended": None})
+            recommendations.append({"pet_id": pet.id, "pet": pet, "recommended": None})
             click.echo(f"  ⚠️  {progress} {pet.id[:8]}: 无候选名可推荐")
             continue
 
@@ -786,7 +966,7 @@ def _batch_recommend(storage, pets: List[Pet], results: Dict[str, List[str]],
         else:
             status = "📌 推荐"
 
-        recommendations.append({"pet_id": pet.id, "recommended": best_name})
+        recommendations.append({"pet_id": pet.id, "pet": pet, "recommended": best_name})
         click.echo(f"  {progress} {pet.id[:8]}: {status} → {best_name} ({lang_label}/{style_label})")
 
     success = sum(1 for r in recommendations if r["recommended"])
